@@ -2,6 +2,7 @@ import dataclasses
 import os
 import sys
 from functools import cache
+from io import BytesIO
 from pathlib import Path
 
 from PySide6 import QtCore, QtGui
@@ -25,10 +26,16 @@ from PySide6.QtWidgets import (
     QProgressBar,
 )
 
+from starhopper.formats.esm.constants import GROUP_METADATA
 from starhopper.formats.esm.file import Group, ESMFile
 from starhopper.gui.settings import HasSettings
+from starhopper.io import BinaryReader
 
 tr = QCoreApplication.translate
+
+
+ColorGray = QtGui.QColor(122, 122, 122)
+ColorPurple = QtGui.QColor(122, 122, 255)
 
 
 @cache
@@ -83,55 +90,40 @@ class GroupLoaderThread(QThread):
         )
         item.setExpanded(True)
 
-        last_update_at = 0
+        bytes_read = 0
+        last_updated_at = 0
         for child in self.group.children():
             item = QTreeWidgetItem(self.viewer.details)
             item.setText(0, child.type.decode("ascii"))
             item.setText(1, f"{child.form_id:08x}")
             item.setToolTip(1, tr("GroupViewer", "Form ID", None))
             item.setFont(1, monospace())
-            item.setForeground(1, QtGui.QBrush(QtGui.QColor(122, 122, 122)))
+            item.setForeground(1, QtGui.QBrush(ColorGray))
 
             for field in child.fields():
-                field_item = QTreeWidgetItem(item)
-                field_item.setText(0, field.type.decode("ascii"))
-
+                # As a special case, we pull up any EDID fields to the top
+                # level of the tree as a label for the record.
                 if field.type == b"EDID":
-                    data = field.decompose()
-                    item.setText(
-                        2,
-                        data.get("name", "Unknown"),
-                    )
-                    item.setToolTip(2, tr("GroupViewer", "Editor ID", None))
-                    item.setForeground(
-                        2,
-                        QtGui.QBrush(QtGui.QColor(122, 122, 122)),
-                    )
+                    with BytesIO(field.data) as data:
+                        io = BinaryReader(data)
+                        with io as edid:
+                            edid.cstring("name")
+                            item.setText(2, edid.data["name"])
+                            item.setToolTip(
+                                2, tr("GroupViewer", "Editor ID", None)
+                            )
+                            item.setForeground(
+                                2,
+                                QtGui.QBrush(ColorPurple),
+                            )
 
-                data = field.decompose()
+                    break
 
-                def _make_children(top: QTreeWidgetItem, data: dict):
-                    for k, v in data.items():
-                        it = QTreeWidgetItem(top)
-                        it.setText(0, k)
-                        if isinstance(v, dict):
-                            _make_children(it, v)
-                        elif isinstance(v, (list, tuple)):
-                            it.setText(1, repr(v[0]))
-                            it.setText(2, v[1])
-                            f = it.font(0)
-                            f.setItalic(True)
-                            it.setFont(2, f)
-                        else:
-                            it.setText(1, str(v))
-
-                if data:
-                    _make_children(field_item, data)
-
-            # Only emit updates every 1MB to avoid slowing down the UI.
-            if child.loc.end - last_update_at > 1024 * 1024:
-                last_update_at = child.loc.end
-                self.progressUpdate.emit(child.loc.end)
+            self.group.file.io.seek(child.loc.end)
+            bytes_read += child.loc.size
+            if bytes_read - last_updated_at > 1024:
+                last_updated_at = bytes_read
+                self.progressUpdate.emit(bytes_read)
 
         self.progressDone.emit()
 
@@ -140,6 +132,7 @@ class GroupViewer(QWidget):
     def __init__(self, group: Group):
         super().__init__()
 
+        self.setWindowTitle(f"Group Viewer: {group.label.decode('ascii')}")
         # Get rid of an ugly Qt icon on each subwindow.
         self.setWindowIcon(QIcon(QPixmap(1, 1)))
         # Doesn't seem to be strictly necessary since PySide is using object
@@ -209,6 +202,11 @@ class ChildNode(QTreeWidgetItem):
         self.setFont(0, monospace())
         self.setText(0, group.label.decode("ascii"))
 
+        meta = GROUP_METADATA.get(group.label)
+        if meta:
+            self.setText(1, meta.get("description", "Unknown"))
+            self.setForeground(1, QtGui.QBrush(QtGui.QColor(122, 122, 122)))
+
 
 class FileNode(QTreeWidgetItem):
     def __init__(self, file: str):
@@ -231,9 +229,13 @@ class Navigation(QWidget):
         self.working_area = working_area
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(1)
-        self.tree.setHeaderHidden(True)
-        self.tree.setHeaderLabels((tr("Navigation", "Type", None),))
+        self.tree.setColumnCount(2)
+        self.tree.setHeaderLabels(
+            (
+                tr("Navigation", "Type", None),
+                tr("Navigation", "Description", None),
+            )
+        )
         self.tree.itemDoubleClicked.connect(self.on_item_double_clicked)
 
         self.layout = QVBoxLayout(self)

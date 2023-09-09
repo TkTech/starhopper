@@ -1,9 +1,9 @@
 # Provides useful metadata about groups that are not necessary for parsing.
 GROUP_METADATA = {
-    "GLOB": {
+    b"GLOB": {
         "description": "Global data",
     },
-    "GMST": {
+    b"GMST": {
         "description": "Game setting",
     },
 }

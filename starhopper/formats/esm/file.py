@@ -37,12 +37,7 @@ class Group:
     loc: Location
     file: "ESMFile"
 
-    _children: list = dataclasses.field(default_factory=list)
-
     def children(self):
-        if self._children:
-            yield from self._children
-
         self.file.io.seek(self.loc.start + 24)
         while self.file.io.pos < self.loc.end:
             peek = self.file.io.read(4)
@@ -51,12 +46,10 @@ class Group:
             if peek == b"GRUP":
                 group = self.file.parse_group(self.file.io)
                 self.file.io.seek(group.loc.end)
-                self._children.append(group)
                 yield group
             else:
                 record = self.file.parse_record()
                 self.file.io.seek(record.loc.end)
-                self._children.append(record)
                 yield record
 
 
@@ -71,12 +64,7 @@ class Record:
     loc: Location
     file: "ESMFile"
 
-    _fields: list = dataclasses.field(default_factory=list)
-
     def fields(self):
-        if self._fields:
-            yield from self._fields
-
         self.file.io.seek(self.loc.start + 24)
         if self.flags & RecordFlag.Compressed:
             decompressed_size = self.file.io.uint32()
@@ -89,12 +77,10 @@ class Record:
                 compressed_io = BinaryReader(data)
                 while compressed_io.pos < decompressed_size:
                     field = self.file.parse_field(compressed_io)
-                    self._fields.append(field)
                     yield field
         else:
             while self.file.io.pos < self.loc.end:
                 field = self.file.parse_field()
-                self._fields.append(field)
                 yield field
 
 
@@ -104,32 +90,6 @@ class Field:
     size: int
     file: "ESMFile"
     data: bytes
-
-    def decompose(self):
-        with BytesIO(self.data) as data:
-            io = BinaryReader(data)
-            with io as field:
-                match self.type:
-                    case b"EDID":
-                        return field.cstring("name").data
-                    case b"FULL" | b"DESC":
-                        if self.file.header["flags"] & RecordFlag.Localized:
-                            return (
-                                field.uint32("localized_index")
-                                .change(
-                                    lambda i: (
-                                        i,
-                                        "An index into a localized text file.",
-                                    )
-                                )
-                                .data
-                            )
-                        else:
-                            return field.cstring("value").data
-                    case b"FLTV":
-                        return field.float_("value").data
-
-        return {}
 
 
 class ESMFile:
