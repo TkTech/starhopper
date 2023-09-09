@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "starhopper"
+version = "0.1.0"
+description = "Python utilties for ESM files."
+authors = ["Tyler Kennedy <tk@tkte.ch>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.11"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+
+
+[tool.poetry.group.cli.dependencies]
+click = "^8.1.7"
+rich = "^13.5.2"
+
+
+[tool.poetry.group.gui.dependencies]
+pyside6 = "^6.5.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 80
