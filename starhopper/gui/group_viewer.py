@@ -77,6 +77,8 @@ class GroupLoaderThread(QThread):
             if isinstance(child, Group):
                 item = GroupChild(group=child)
                 item.setText(0, child.type.decode("ascii"))
+                item.setText(2, child.get_friendly_label())
+                item.setForeground(2, QtGui.QBrush(ColorPurple))
                 self.group.file.io.seek(child.loc.end)
                 self.viewer.details.addTopLevelItem(item)
                 continue

@@ -20,6 +20,22 @@ class RecordFlag(enum.IntFlag):
     CantWait = 0x80000
 
 
+class GroupType(enum.IntEnum):
+    # GitHub Copilot crapped out this enum practically verbatim from the
+    # ESMSharp project...
+    Top = 0x00
+    WorldChildren = 0x01
+    InteriorCellBlock = 0x02
+    InteriorCellSubBlock = 0x03
+    ExteriorCellBlock = 0x04
+    ExteriorCellSubBlock = 0x05
+    CellChildren = 0x06
+    TopicChildren = 0x07
+    CellPersistentChildren = 0x08
+    CellTemporaryChildren = 0x09
+    CellVisibleDistantChildren = 0x0A
+
+
 @dataclasses.dataclass
 class Location:
     start: int
@@ -36,6 +52,38 @@ class Group:
     version: int
     loc: Location
     file: "ESMFile"
+
+    def get_friendly_label(self) -> str:
+        """
+        Get a human-friendly name for display.
+
+        Only top-level GRUPs have a readable label. The rest must be resolved.
+        """
+        io = BinaryReader(BytesIO(self.label))
+        match self.group_type:
+            case GroupType.Top:
+                return self.label.decode("ascii")
+            # TODO: case GroupTYpe.WorldChildren
+            case GroupType.InteriorCellBlock:
+                return f"Interior Cell Block {io.uint32()}"
+            case GroupType.InteriorCellSubBlock:
+                return f"Interior Cell Sub-Block {io.uint32()}"
+            case GroupType.ExteriorCellBlock:
+                return f"Exterior Cell Block {io.uint16()}, {io.uint16()}"
+            case GroupType.ExteriorCellSubBlock:
+                return f"Exterior Cell Sub-Block {io.uint16()}, {io.uint16()}"
+            case GroupType.CellChildren:
+                return f"Cell Children {io.uint32()}"
+            case GroupType.TopicChildren:
+                return f"Topic Children {io.uint32()}"
+            case GroupType.CellPersistentChildren:
+                return f"Cell Persistent Children {io.uint32()}"
+            case GroupType.CellTemporaryChildren:
+                return f"Cell Temporary Children {io.uint32()}"
+            case GroupType.CellVisibleDistantChildren:
+                return f"Cell Visible Distant Children {io.uint32()}"
+            case _:
+                return f"Unknown ({self.type}: {self.label.hex()})"
 
     @property
     def metadata(self) -> dict[str, Any]:
