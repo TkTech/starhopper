@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+from PySide6 import QtCore
 from PySide6.QtCore import (
     QTranslator,
     QCoreApplication,
@@ -12,10 +13,13 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QMainWindow,
-    QMdiArea,
     QSplitter,
     QFileDialog,
     QTreeWidgetItem,
+    QScrollArea,
+    QHBoxLayout,
+    QLayout,
+    QSizePolicy,
 )
 
 from starhopper.formats.esm.file import ESMFile
@@ -68,7 +72,6 @@ class MainWindow(HasSettings, QMainWindow):
 
         self.menu = self.menuBar()
         self.menu_file = self.menu.addMenu(tr("MainWindow", "File", None))
-        self.menu_viewers = self.menu.addMenu(tr("MainWindow", "Viewers", None))
 
         open_action = self.menu_file.addAction(tr("MainWindow", "Open", None))
         open_action.setShortcut(QKeySequence.Open)
@@ -80,21 +83,28 @@ class MainWindow(HasSettings, QMainWindow):
         file_exit.setShortcut(QKeySequence.Quit)
         file_exit.triggered.connect(self.on_close)
 
-        self.mdi = QMdiArea()
-        self.navigation = Navigation(working_area=self.mdi)
+        self.panel_scroll_container = QScrollArea()
+        self.panel_scroll_container.setWidgetResizable(True)
 
-        cascade_all_action = self.menu_viewers.addAction(
-            tr("MainWindow", "Cascade All", None)
+        self.panel_container = QWidget()
+        self.panel_container.setSizePolicy(
+            QSizePolicy.Minimum, QSizePolicy.Minimum
         )
-        cascade_all_action.triggered.connect(self.mdi.cascadeSubWindows)
-        close_all_action = self.menu_viewers.addAction(
-            tr("MainWindow", "Close All", None)
+        self.panel_container.setMinimumWidth(800)
+        self.panel_container_layout = QHBoxLayout(self.panel_container)
+        self.panel_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.panel_container_layout.setSizeConstraint(QLayout.SetMinimumSize)
+        self.panel_scroll_container.setWidget(self.panel_container)
+
+        self.navigation = Navigation(working_area=self.panel_container_layout)
+        self.navigation.setMinimumWidth(300)
+        self.navigation.addedNewPanel.connect(
+            self.on_added_new_panel, QtCore.Qt.QueuedConnection  # noqa
         )
-        close_all_action.triggered.connect(self.mdi.closeAllSubWindows)
 
         splitter = QSplitter()
         splitter.addWidget(self.navigation)
-        splitter.addWidget(self.mdi)
+        splitter.addWidget(self.panel_scroll_container)
         splitter.setSizes([300, 800])
 
         self.setCentralWidget(splitter)
@@ -121,6 +131,9 @@ class MainWindow(HasSettings, QMainWindow):
         sit = SearchIndexThread(fname)
         self.search_index_threads.append(sit)
         sit.start()
+
+    def on_added_new_panel(self, panel: QWidget):
+        self.panel_scroll_container.ensureWidgetVisible(panel)
 
     def settings_load(self):
         self.restoreGeometry(self.settings.value("geometry"))

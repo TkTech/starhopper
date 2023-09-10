@@ -1,21 +1,24 @@
-from PySide6 import QtGui
+from PySide6 import QtGui, QtCore
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QWidget,
-    QMdiArea,
     QTreeWidget,
     QVBoxLayout,
     QTreeWidgetItem,
+    QLayout,
 )
 
 from starhopper.formats.esm.file import Group
-from starhopper.formats.esm.records.base import HighLevelRecord, get_all_records
+from starhopper.formats.esm.records.base import get_all_records
 
 from starhopper.gui.common import tr, monospace
 from starhopper.gui.group_viewer import GroupViewer
 
 
 class Navigation(QWidget):
-    def __init__(self, working_area: QMdiArea):
+    addedNewPanel = Signal(QWidget)
+
+    def __init__(self, working_area: QLayout):
         super().__init__()
 
         self.working_area = working_area
@@ -34,11 +37,19 @@ class Navigation(QWidget):
         self.layout.addWidget(self.tree)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
+        self.viewer: QWidget | None = None
+
     def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
         if isinstance(item, ChildNode):
-            self.working_area.addSubWindow(
-                GroupViewer(item.group, self.working_area)
-            ).show()
+            if self.viewer is not None:
+                self.viewer.close()
+
+            self.viewer = GroupViewer(item.group, self.working_area)
+            self.viewer.addedNewPanel.connect(
+                self.addedNewPanel.emit, QtCore.Qt.QueuedConnection  # noqa
+            )
+            self.working_area.addWidget(self.viewer)
+            self.addedNewPanel.emit(self.viewer)
 
 
 class ChildNode(QTreeWidgetItem):

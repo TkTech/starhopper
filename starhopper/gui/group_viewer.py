@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
     QTreeWidget,
     QMdiArea,
     QSizePolicy,
+    QLayout,
+    QScrollArea,
 )
 
 from starhopper.formats.esm.file import Group, ESMFile, Record, RecordFlag
@@ -20,7 +22,7 @@ from starhopper.gui.common import (
     ColorRed,
 )
 from starhopper.gui.record_viewer import RecordViewer
-from starhopper.gui.viewer_window import ViewerWindow
+from starhopper.gui.viewer import Viewer
 from starhopper.io import BinaryReader
 
 
@@ -119,7 +121,7 @@ class GroupLoaderThread(QThread):
         self.progressDone.emit()
 
 
-class GroupViewer(ViewerWindow):
+class GroupViewer(Viewer):
     """
     Displays a single group in a tree view.
 
@@ -127,8 +129,8 @@ class GroupViewer(ViewerWindow):
     blocking the UI thread.
     """
 
-    def __init__(self, group: Group, working_area: QMdiArea):
-        super().__init__()
+    def __init__(self, group: Group, working_area: QLayout):
+        super().__init__(working_area=working_area)
 
         if group.label.isascii():
             self.setWindowTitle(f"Group Viewer: {group.label.decode('ascii')}")
@@ -141,7 +143,6 @@ class GroupViewer(ViewerWindow):
         self.file = os.fdopen(os.dup(group.file.file.fileno()), "rb")
         self.file.seek(0)
         self.group = dataclasses.replace(self.group, file=ESMFile(self.file))
-        self.working_area = working_area
 
         self.details = QTreeWidget(self)
         self.details.setUniformRowHeights(True)
@@ -153,7 +154,6 @@ class GroupViewer(ViewerWindow):
                 tr("GroupViewer", "EDID", None),
             )
         )
-        self.details.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.details.itemDoubleClicked.connect(self.on_item_double_clicked)
 
         self.loader = GroupLoaderThread(self, group)
@@ -176,10 +176,11 @@ class GroupViewer(ViewerWindow):
 
     def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
         if isinstance(item, GroupChild):
-            self.working_area.addSubWindow(
-                GroupViewer(item.group, self.working_area)
-            ).show()
+            self.add_panel(
+                "child",
+                GroupViewer(item.group, self.working_area),
+            )
         elif isinstance(item, RecordChild):
-            self.working_area.addSubWindow(
-                RecordViewer(item.record, self.working_area)
-            ).show()
+            self.add_panel(
+                "child", RecordViewer(item.record, self.working_area)
+            )

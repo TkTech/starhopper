@@ -6,13 +6,13 @@ from PySide6.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
     QMdiArea,
+    QLayout,
 )
 
 from starhopper.formats.esm.file import Record, ESMFile, RecordFlag
 from starhopper.formats.esm.records.base import HighLevelRecord
-from starhopper.formats.esm.records.types import Bytes
 from starhopper.gui.common import tr, ColorPurple, ColorGray
-from starhopper.gui.viewer_window import ViewerWindow
+from starhopper.gui.viewer import Viewer
 
 
 class FieldChild(QTreeWidgetItem):
@@ -107,11 +107,6 @@ class RecordLoaderThread(QThread):
 
             self.viewer.details.addTopLevelItem(field_item)
 
-            if field.type == b"EDID":
-                self.viewer.setWindowTitle(
-                    f"Record View for {field.data.decode('ascii')}"
-                )
-
             bytes_read += field.size + 6
             if bytes_read - last_updated_at > 1024:
                 last_updated_at = bytes_read
@@ -120,17 +115,16 @@ class RecordLoaderThread(QThread):
         self.progressDone.emit()
 
 
-class RecordViewer(ViewerWindow):
+class RecordViewer(Viewer):
     """
     Generic record viewer.
     """
 
-    def __init__(self, record: Record, working_area: QMdiArea):
-        super().__init__()
+    def __init__(self, record: Record, working_area: QLayout):
+        super().__init__(working_area=working_area)
         self.file = os.fdopen(os.dup(record.file.file.fileno()), "rb")
         self.file.seek(0)
         self.record = dataclasses.replace(record, file=ESMFile(self.file))
-        self.working_area = working_area
 
         self.details = QTreeWidget()
         self.details.setColumnCount(3)
