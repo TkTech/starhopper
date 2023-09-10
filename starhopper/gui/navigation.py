@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 from starhopper.formats.esm.file import Group
 from starhopper.formats.esm.records.base import get_all_records
 
-from starhopper.gui.common import tr, monospace
+from starhopper.gui.common import tr, monospace, ColorGray, ColorGreen
 from starhopper.gui.group_viewer import GroupViewer
 
 
@@ -63,4 +63,5 @@ class ChildNode(QTreeWidgetItem):
         handler = get_all_records().get(group.label, None)
         if handler:
             self.setText(1, handler.label().decode("ascii"))
-            self.setForeground(1, QtGui.QBrush(QtGui.QColor(122, 122, 122)))
+            self.setForeground(1, QtGui.QBrush(ColorGray))
+            self.setForeground(0, QtGui.QBrush(ColorGreen))

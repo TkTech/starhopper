@@ -8,6 +8,7 @@ tr = QCoreApplication.translate
 ColorGray = QtGui.QColor(122, 122, 122)
 ColorPurple = QtGui.QColor(122, 122, 255)
 ColorRed = QtGui.QColor(255, 122, 122)
+ColorGreen = QtGui.QColor(122, 255, 122)
 
 
 @cache

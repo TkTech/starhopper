@@ -60,7 +60,6 @@ class RecordLoaderThread(QThread):
                 QTreeWidgetItem(["Size", f"0x{self.record.loc.size:08x}"]),
             ]
         )
-        item.setExpanded(True)
 
         if HighLevelRecord.can_be_handled(self.record):
             hlr = HighLevelRecord(self.record)
@@ -103,7 +102,6 @@ class RecordLoaderThread(QThread):
                     QTreeWidgetItem(["Data", repr(field.data)]),
                 ]
             )
-            field_item.setExpanded(True)
 
             self.viewer.details.addTopLevelItem(field_item)
 
@@ -143,3 +141,7 @@ class RecordViewer(Viewer):
         self.loader.start()
 
         self.layout.insertWidget(0, self.details)
+
+    def on_progress_complete(self):
+        self.details.expandAll()
+        super().on_progress_complete()
