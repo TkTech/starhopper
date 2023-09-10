@@ -1,0 +1,35 @@
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+name: Release
+
+jobs:
+  sdist:
+    name: Creating source release
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4.0.0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4.7.0
+      with:
+        python-version: "3.11""
+
+    - name: Install python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade setuptools
+        pip install wheel twine
+
+    - name: Publishing
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
