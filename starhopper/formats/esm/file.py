@@ -63,27 +63,28 @@ class Group:
         match self.group_type:
             case GroupType.Top:
                 return self.label.decode("ascii")
-            # TODO: case GroupTYpe.WorldChildren
+            case GroupType.WorldChildren:
+                return f"World Children [{io.uint32():08X}]"
             case GroupType.InteriorCellBlock:
-                return f"Interior Cell Block {io.uint32()}"
+                return f"Interior Cell Block [{io.uint32():08X}]"
             case GroupType.InteriorCellSubBlock:
-                return f"Interior Cell Sub-Block {io.uint32()}"
+                return f"Interior Cell Sub-Block [{io.uint32():08X}]"
             case GroupType.ExteriorCellBlock:
                 return f"Exterior Cell Block {io.uint16()}, {io.uint16()}"
             case GroupType.ExteriorCellSubBlock:
                 return f"Exterior Cell Sub-Block {io.uint16()}, {io.uint16()}"
             case GroupType.CellChildren:
-                return f"Cell Children {io.uint32()}"
+                return f"Cell Children [{io.uint32():08X}]"
             case GroupType.TopicChildren:
-                return f"Topic Children {io.uint32()}"
+                return f"Topic Children [{io.uint32():08X}]"
             case GroupType.CellPersistentChildren:
-                return f"Cell Persistent Children {io.uint32()}"
+                return f"Cell Persistent Children [{io.uint32():08X}]"
             case GroupType.CellTemporaryChildren:
-                return f"Cell Temporary Children {io.uint32()}"
+                return f"Cell Temporary Children [{io.uint32():08X}]"
             case GroupType.CellVisibleDistantChildren:
-                return f"Cell Visible Distant Children {io.uint32()}"
+                return f"Cell Visible Distant Children [{io.uint32():08X}]"
             case _:
-                return f"Unknown ({self.type}: {self.label.hex()})"
+                return f"Unknown (T:{self.group_type}, V:{self.label.hex()})"
 
     @property
     def metadata(self) -> dict[str, Any]:

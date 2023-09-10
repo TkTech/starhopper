@@ -38,7 +38,7 @@ class Viewer(QWidget):
         self.setSizePolicy(
             QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         )
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(600)
         self.setLayout(self.layout)
 
     def on_progress_update(self, value):
