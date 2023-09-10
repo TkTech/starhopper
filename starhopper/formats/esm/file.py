@@ -2,7 +2,7 @@ import dataclasses
 import enum
 import zlib
 from io import BytesIO
-from typing import BinaryIO, Iterator
+from typing import BinaryIO, Iterator, Any
 
 from starhopper.io import BinaryReader
 
@@ -36,6 +36,10 @@ class Group:
     version: int
     loc: Location
     file: "ESMFile"
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        return {}
 
     def children(self):
         self.file.io.seek(self.loc.start + 24)
