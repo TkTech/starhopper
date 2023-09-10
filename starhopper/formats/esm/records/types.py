@@ -61,3 +61,7 @@ class Bytes(BaseType):
 
 class Unknown(BaseType):
     pass
+
+
+class Translatable(BaseType):
+    pass

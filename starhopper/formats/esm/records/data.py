@@ -6,8 +6,13 @@ from starhopper.formats.esm.records.base import (
     HighLevelRecord,
     BasicType,
 )
-from starhopper.formats.esm.records.types import String, UInt32, Float, Bool, \
-    Bytes
+from starhopper.formats.esm.records.types import (
+    UInt32,
+    Float,
+    Bool,
+    Bytes,
+    Translatable
+)
 from starhopper.io import BinaryReader
 
 
@@ -27,7 +32,7 @@ class DATA(RecordField):
             type_ = self.type_(record)
             match type_:
                 case BasicType.String:
-                    data.cstring("value").change(String)
+                    data.uint32("value").change(Translatable)
                 case BasicType.Int:
                     data.int32("value").change(UInt32)
                 case BasicType.Float:

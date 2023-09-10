@@ -20,12 +20,35 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLayout,
     QSizePolicy,
+    QLineEdit,
+    QProgressBar,
 )
 
 from starhopper.formats.esm.file import ESMFile
 from starhopper.gui.common import tr
 from starhopper.gui.navigation import Navigation, ChildNode
 from starhopper.gui.settings import HasSettings
+
+
+class SearchBox(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.query = QLineEdit()
+        self.query.setMinimumWidth(300)
+        self.query.setPlaceholderText(tr("Search", "Search...", None))
+
+        self.progress = QProgressBar()
+        self.progress.setTextVisible(True)
+        self.progress.setMinimumWidth(300)
+        self.progress.setFormat(tr("Search", "Indexing...", None))
+        self.progress.setAlignment(QtCore.Qt.AlignCenter)
+        self.progress.setMaximum(100)
+        self.progress.setValue(50)
+
+        self.layout = QVBoxLayout(self)
+        # self.layout.addWidget(self.query)
+        self.layout.setContentsMargins(0, 0, 0, 0)
 
 
 class SearchIndexThread(QThread):
@@ -71,6 +94,10 @@ class MainWindow(HasSettings, QMainWindow):
         self.setWindowTitle("StarHopper")
 
         self.menu = self.menuBar()
+        self.global_search = SearchBox()
+        self.menu.setCornerWidget(
+            self.global_search, QtCore.Qt.TopRightCorner  # noqa
+        )
         self.menu_file = self.menu.addMenu(tr("MainWindow", "File", None))
 
         open_action = self.menu_file.addAction(tr("MainWindow", "Open", None))
@@ -116,21 +143,22 @@ class MainWindow(HasSettings, QMainWindow):
         QCoreApplication.quit()
 
     def on_open_file(self):
-        fname, _ = QFileDialog.getOpenFileName(
+        fnames, _ = QFileDialog.getOpenFileNames(
             self,
             tr("MainWindow", "Open File", None),
             self.settings.value("last_open_dir", "."),
-            tr("MainWindow", "Bethesda Files (*.esm *.esp)", None),
+            tr("MainWindow", "Bethesda Files (*.esm *.esp *.ba2)", None),
         )
-        if not fname:
+        if not fnames:
             return
 
-        self.settings.setValue("last_open_dir", str(Path(fname).parent))
-        self.navigation.tree.addTopLevelItem(FileNode(fname))
+        for fname in fnames:
+            self.settings.setValue("last_open_dir", str(Path(fname).parent))
+            self.navigation.tree.addTopLevelItem(FileNode(fname))
 
-        sit = SearchIndexThread(fname)
-        self.search_index_threads.append(sit)
-        sit.start()
+        # sit = SearchIndexThread(fname)
+        # self.search_index_threads.append(sit)
+        # sit.start()
 
     def on_added_new_panel(self, panel: QWidget):
         self.panel_scroll_container.ensureWidgetVisible(panel)
