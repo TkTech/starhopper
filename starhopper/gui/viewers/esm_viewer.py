@@ -1,5 +1,5 @@
 from PySide6.QtGui import QBrush
-from PySide6.QtWidgets import QLayout, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QLayout, QTreeWidget, QTreeWidgetItem, QSizePolicy
 
 from starhopper.formats.esm.file import ESMContainer, Group
 from starhopper.formats.esm.records.base import get_all_records
@@ -36,13 +36,16 @@ class ESMViewer(Viewer):
         self.top_level_groups.itemDoubleClicked.connect(
             self.on_item_double_clicked
         )
+        self.top_level_groups.setSizePolicy(
+            QSizePolicy.Minimum, QSizePolicy.MinimumExpanding
+        )
 
         for group in self.esm.groups:
             item = ESMViewerNode(self.esm, group)
             self.top_level_groups.addTopLevelItem(item)
 
         self.layout.insertWidget(0, self.top_level_groups)
-        self.setMinimumWidth(200)
+        self.setMinimumWidth(0)
 
     def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
         if isinstance(item, ESMViewerNode):
