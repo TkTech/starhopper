@@ -5,11 +5,13 @@ from PySide6.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
     QLayout,
+    QHeaderView,
 )
 
-from starhopper.formats.esm.file import Record, ESMContainer, RecordFlag
+from starhopper.formats.esm.file import Record, ESMContainer, RecordFlag, Field
 from starhopper.formats.esm.records.base import HighLevelRecord
 from starhopper.gui.common import tr, ColorPurple, ColorGray
+from starhopper.gui.viewers.binary_viewer import BinaryViewer
 from starhopper.gui.viewers.viewer import Viewer
 
 
@@ -131,6 +133,12 @@ class RecordViewer(Viewer):
                 tr("RecordViewer", "Data Type", None),
             )
         )
+        header = self.details.header()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+
+        self.details.itemDoubleClicked.connect(self.on_item_double_clicked)
+        self.details.currentItemChanged.connect(self.on_item_changed)
 
         self.loader = RecordLoaderThread(self, record)
         self.loader.progressSetMaximum.connect(self.on_progress_set_maximum)
@@ -143,3 +151,34 @@ class RecordViewer(Viewer):
     def on_progress_complete(self):
         self.details.expandAll()
         super().on_progress_complete()
+
+    def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
+        if not isinstance(item, FieldChild):
+            return
+
+        self.add_panel(
+            "child",
+            BinaryViewer(
+                item.field.data,
+                working_area=self.working_area,
+            ),
+        )
+
+    def on_item_changed(
+        self, current: QTreeWidgetItem, previous: QTreeWidgetItem
+    ):
+        if not isinstance(current, FieldChild):
+            return
+
+        if not isinstance(current.field, Field):
+            # If we have a high-level field, we already know what the contents
+            # are.
+            return
+
+        self.add_panel(
+            "child",
+            BinaryViewer(
+                current.field.data,
+                working_area=self.working_area,
+            ),
+        )
