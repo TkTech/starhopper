@@ -120,6 +120,7 @@ class MainWindow(HasSettings, QMainWindow):
         self.navigation.addedNewPanel.connect(
             self.on_added_new_panel, QtCore.Qt.QueuedConnection  # noqa
         )
+        self.navigation.hide()
 
         splitter = QSplitter()
         splitter.addWidget(self.navigation)
@@ -149,9 +150,9 @@ class MainWindow(HasSettings, QMainWindow):
             self.settings.setValue("last_open_dir", str(path.parent))
             match path.suffix:
                 case ".esm":
-                    self.navigation.tree.addTopLevelItem(ESMFileNode(fname))
+                    item = ESMFileNode(fname)
                 case ".ba2":
-                    self.navigation.tree.addTopLevelItem(ArchiveFileNode(fname))
+                    item = ArchiveFileNode(fname)
                 case _:
                     QMessageBox.warning(
                         None,  # noqa
@@ -162,6 +163,13 @@ class MainWindow(HasSettings, QMainWindow):
                             None,
                         ),
                     )
+                    continue
+
+            self.navigation.tree.addTopLevelItem(item)
+            if self.navigation.tree.topLevelItemCount() > 1:
+                self.navigation.show()
+            else:
+                self.navigation.on_item_double_clicked(item, 0)
 
         # sit = SearchIndexThread(fname)
         # self.search_index_threads.append(sit)

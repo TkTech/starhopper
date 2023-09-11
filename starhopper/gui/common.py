@@ -10,6 +10,8 @@ ColorPurple = QtGui.QColor(122, 122, 255)
 ColorRed = QtGui.QColor(255, 122, 122)
 ColorGreen = QtGui.QColor(122, 255, 122)
 ColorTeal = QtGui.QColor(20, 240, 255)
+ColorYellow = QtGui.QColor(255, 255, 122)
+ColorOrange = QtGui.QColor(255, 122, 20)
 
 
 @cache

@@ -15,6 +15,7 @@ from starhopper.formats.esm.file import ESMContainer
 
 from starhopper.gui.common import (
     ColorTeal,
+    ColorOrange,
 )
 from starhopper.gui.viewers.archive_viewer import ArchiveViewer
 from starhopper.gui.viewers.esm_viewer import ESMViewer
@@ -71,6 +72,7 @@ class ESMFileNode(HandledChildNode, QTreeWidgetItem):
         self.esm = ESMContainer(self.handle)
 
         self.setText(0, self.file.name)
+        self.setForeground(0, QtGui.QBrush(ColorOrange))
 
     def get_viewer(self, working_area: QLayout) -> Viewer | None:
         return ESMViewer(self.esm, working_area)
