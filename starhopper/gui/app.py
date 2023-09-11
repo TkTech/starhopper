@@ -6,8 +6,9 @@ from PySide6.QtCore import (
     QTranslator,
     QCoreApplication,
     QThread,
+    Signal,
 )
-from PySide6.QtGui import QKeySequence
+from PySide6.QtGui import QKeySequence, Qt
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -22,6 +23,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QMessageBox,
+    QLabel,
+    QPushButton,
 )
 
 from starhopper.formats.esm.file import ESMContainer
@@ -73,7 +76,45 @@ class Details(QWidget):
         self.setLayout(self.layout)
 
 
+class StarterWidget(QWidget):
+    """
+    Shown in the main window when no other content has been loaded yet to
+    provide an easy way to get started.
+    """
+
+    openFile = Signal()
+
+    def __init__(self):
+        super().__init__()
+
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.layout.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(
+            QLabel(tr("MainWindow", "Welcome to StarHopper!", None))
+        )
+        self.layout.addWidget(
+            QLabel(
+                tr(
+                    "MainWindow",
+                    "To get started, open a file using the button below.",
+                    None,
+                )
+            )
+        )
+        btn = QPushButton(
+            tr("MainWindow", "Open File", None),
+        )
+        btn.clicked.connect(self.openFile.emit)
+        self.layout.addWidget(btn)
+
+        self.setLayout(self.layout)
+
+
 class MainWindow(HasSettings, QMainWindow):
+    fileAdded = Signal(str)
+
     def __init__(self):
         super().__init__()
         self.search_index_threads = []
@@ -121,6 +162,11 @@ class MainWindow(HasSettings, QMainWindow):
             self.on_added_new_panel, QtCore.Qt.QueuedConnection  # noqa
         )
         self.navigation.hide()
+
+        starter = StarterWidget()
+        starter.openFile.connect(self.on_open_file)
+        self.fileAdded.connect(starter.close)
+        self.panel_container_layout.addWidget(starter)
 
         splitter = QSplitter()
         splitter.addWidget(self.navigation)
@@ -171,9 +217,7 @@ class MainWindow(HasSettings, QMainWindow):
             else:
                 self.navigation.on_item_double_clicked(item, 0)
 
-        # sit = SearchIndexThread(fname)
-        # self.search_index_threads.append(sit)
-        # sit.start()
+            self.fileAdded.emit(fname)
 
     def on_added_new_panel(self, panel: QWidget):
         self.panel_scroll_container.ensureWidgetVisible(panel)
