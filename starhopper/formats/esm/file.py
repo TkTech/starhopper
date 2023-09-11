@@ -4,6 +4,7 @@ import zlib
 from io import BytesIO
 from typing import BinaryIO, Iterator, Any
 
+from starhopper.formats.common import Location
 from starhopper.io import BinaryReader
 
 
@@ -37,13 +38,6 @@ class GroupType(enum.IntEnum):
 
 
 @dataclasses.dataclass
-class Location:
-    start: int
-    end: int
-    size: int
-
-
-@dataclasses.dataclass
 class Group:
     type: bytes
     size: int
@@ -51,7 +45,7 @@ class Group:
     group_type: int
     version: int
     loc: Location
-    file: "ESMFile"
+    file: "ESMContainer"
 
     def get_friendly_label(self) -> str:
         """
@@ -115,7 +109,7 @@ class Record:
     revision: int
     version: int
     loc: Location
-    file: "ESMFile"
+    file: "ESMContainer"
 
     def fields(self):
         self.file.io.seek(self.loc.start + 24)
@@ -141,11 +135,11 @@ class Record:
 class Field:
     type: bytes
     size: int
-    file: "ESMFile"
+    file: "ESMContainer"
     data: bytes
 
 
-class ESMFile:
+class ESMContainer:
     """
     Parser for a Bethesda ESM file.
     """

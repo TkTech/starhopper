@@ -1,18 +1,16 @@
 import dataclasses
-import os
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
-    QMdiArea,
     QLayout,
 )
 
-from starhopper.formats.esm.file import Record, ESMFile, RecordFlag
+from starhopper.formats.esm.file import Record, ESMContainer, RecordFlag
 from starhopper.formats.esm.records.base import HighLevelRecord
 from starhopper.gui.common import tr, ColorPurple, ColorGray
-from starhopper.gui.viewer import Viewer
+from starhopper.gui.viewers.viewer import Viewer
 
 
 class FieldChild(QTreeWidgetItem):
@@ -120,9 +118,9 @@ class RecordViewer(Viewer):
 
     def __init__(self, record: Record, working_area: QLayout):
         super().__init__(working_area=working_area)
-        self.file = os.fdopen(os.dup(record.file.file.fileno()), "rb")
+        self.file = record.file.file
         self.file.seek(0)
-        self.record = dataclasses.replace(record, file=ESMFile(self.file))
+        self.record = dataclasses.replace(record, file=ESMContainer(self.file))
 
         self.details = QTreeWidget()
         self.details.setColumnCount(3)

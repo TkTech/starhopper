@@ -1,5 +1,4 @@
 import dataclasses
-import os
 from io import BytesIO
 
 from PySide6 import QtGui, QtCore
@@ -7,13 +6,10 @@ from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidget,
-    QMdiArea,
-    QSizePolicy,
     QLayout,
-    QScrollArea,
 )
 
-from starhopper.formats.esm.file import Group, ESMFile, Record, RecordFlag
+from starhopper.formats.esm.file import Group, ESMContainer, Record, RecordFlag
 from starhopper.gui.common import (
     tr,
     ColorGray,
@@ -21,8 +17,8 @@ from starhopper.gui.common import (
     monospace,
     ColorRed,
 )
-from starhopper.gui.record_viewer import RecordViewer
-from starhopper.gui.viewer import Viewer
+from starhopper.gui.viewers.record_viewer import RecordViewer
+from starhopper.gui.viewers.viewer import Viewer
 from starhopper.io import BinaryReader
 
 
@@ -134,17 +130,12 @@ class GroupViewer(Viewer):
     def __init__(self, group: Group, working_area: QLayout):
         super().__init__(working_area=working_area)
 
-        if group.label.isascii():
-            self.setWindowTitle(f"Group Viewer: {group.label.decode('ascii')}")
-        else:
-            self.setWindowTitle(f"Group Viewer")
-
-        # We're going to be creating a new file handle for this group, so we
-        # can seek around in it without affecting any other views.
         self.group = group
-        self.file = os.fdopen(os.dup(group.file.file.fileno()), "rb")
+        self.file = group.file.file
         self.file.seek(0)
-        self.group = dataclasses.replace(self.group, file=ESMFile(self.file))
+        self.group = dataclasses.replace(
+            self.group, file=ESMContainer(self.file)
+        )
 
         self.details = QTreeWidget(self)
         self.details.setUniformRowHeights(True)
@@ -171,10 +162,6 @@ class GroupViewer(Viewer):
         self.loader.start()
 
         self.layout.insertWidget(0, self.details)
-
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-        self.file.close()
-        super().closeEvent(event)
 
     def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
         if isinstance(item, GroupChild):

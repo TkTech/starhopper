@@ -56,6 +56,21 @@ class BinaryReader:
     def double(self) -> float:
         return unpack("<d", self.read(8))[0]
 
+    def cstring(self, encoding: str = "utf-8") -> str:
+        """
+        Read bytes until a null byte is encountered, and decode them as the
+        given encoding.
+
+        :param encoding: The encoding to use.
+        """
+        b = []
+        while True:
+            c = self.uint8()
+            if c == 0:
+                break
+            b.append(c)
+        return bytes(b).decode(encoding)
+
     def __enter__(self) -> "Capture":
         return Capture(self)
 

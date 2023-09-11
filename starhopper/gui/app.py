@@ -15,18 +15,18 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QSplitter,
     QFileDialog,
-    QTreeWidgetItem,
     QScrollArea,
     QHBoxLayout,
     QLayout,
     QSizePolicy,
     QLineEdit,
     QProgressBar,
+    QMessageBox,
 )
 
-from starhopper.formats.esm.file import ESMFile
+from starhopper.formats.esm.file import ESMContainer
 from starhopper.gui.common import tr
-from starhopper.gui.navigation import Navigation, ChildNode
+from starhopper.gui.navigation import Navigation, ESMFileNode, BTDXFileNode
 from starhopper.gui.settings import HasSettings
 
 
@@ -58,23 +58,9 @@ class SearchIndexThread(QThread):
 
     def run(self):
         with open(self.file, "rb") as src:
-            esm = ESMFile(src)
+            esm = ESMContainer(src)
             for group in esm.groups:
                 pass
-
-
-class FileNode(QTreeWidgetItem):
-    def __init__(self, file: str):
-        super().__init__()
-        self.file = Path(file)
-        self.handle = open(file, "rb")
-        self.esm = ESMFile(self.handle)
-
-        self.setText(0, self.file.name)
-        self.setFirstColumnSpanned(True)
-
-        for group in self.esm.groups:
-            self.addChild(ChildNode(group))
 
 
 class Details(QWidget):
@@ -112,6 +98,9 @@ class MainWindow(HasSettings, QMainWindow):
 
         self.panel_scroll_container = QScrollArea()
         self.panel_scroll_container.setWidgetResizable(True)
+        self.panel_scroll_container.setSizePolicy(
+            QSizePolicy.MinimumExpanding, QSizePolicy.Expanding
+        )
 
         self.panel_container = QWidget()
         self.panel_container.setSizePolicy(
@@ -125,6 +114,9 @@ class MainWindow(HasSettings, QMainWindow):
 
         self.navigation = Navigation(working_area=self.panel_container_layout)
         self.navigation.setMinimumWidth(300)
+        self.navigation.setSizePolicy(
+            QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
         self.navigation.addedNewPanel.connect(
             self.on_added_new_panel, QtCore.Qt.QueuedConnection  # noqa
         )
@@ -147,14 +139,29 @@ class MainWindow(HasSettings, QMainWindow):
             self,
             tr("MainWindow", "Open File", None),
             self.settings.value("last_open_dir", "."),
-            tr("MainWindow", "Bethesda Files (*.esm *.esp *.ba2)", None),
+            tr("MainWindow", "Bethesda Files (*.esm *.ba2)", None),
         )
         if not fnames:
             return
 
         for fname in fnames:
-            self.settings.setValue("last_open_dir", str(Path(fname).parent))
-            self.navigation.tree.addTopLevelItem(FileNode(fname))
+            path = Path(fname)
+            self.settings.setValue("last_open_dir", str(path.parent))
+            match path.suffix:
+                case ".esm":
+                    self.navigation.tree.addTopLevelItem(ESMFileNode(fname))
+                case ".ba2":
+                    self.navigation.tree.addTopLevelItem(BTDXFileNode(fname))
+                case _:
+                    QMessageBox.warning(
+                        None,  # noqa
+                        "StarHopper",
+                        tr(
+                            "MainWindow",
+                            "Tried to open an unknown filetype :(",
+                            None,
+                        ),
+                    )
 
         # sit = SearchIndexThread(fname)
         # self.search_index_threads.append(sit)
