@@ -26,3 +26,20 @@ And if you want the GUI:
 ```bash
 pip install starhopper[gui]
 ```
+
+## Support
+
+This project is brand new and everything is from scratch, so compatibility is
+an ongoing effort. If you have a file that doesn't work, please open an issue
+and attach the file. I'll try to get it working as soon as possible.
+
+Right now, the project is only tested against Starfield. Patches for older
+Bethesda games are welcome.
+
+Included parsers:
+
+| Format   | Version(s) | Note                                                    |
+|----------|------------|---------------------------------------------------------|
+| ESM      | TES5       | Raw viewer, only a few Records have detailed support.   |
+| .ba2     | v2, v3     | Uncompressed GNRL records only, DX10 not yet supported. |
+| .strings | All        | Supports .strings, .dlstrings, and .ilstrings.          |

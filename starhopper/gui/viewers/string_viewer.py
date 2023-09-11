@@ -10,6 +10,11 @@ from starhopper.gui.viewers.viewer import Viewer
 
 
 class StringViewer(Viewer):
+    """
+    Viewer for Bethesda .strings, .dlstrings, and .ilstrings files, typically
+    containing translations.
+    """
+
     def __init__(self, file: GeneralFile, working_area: QLayout):
         super().__init__(working_area)
 
