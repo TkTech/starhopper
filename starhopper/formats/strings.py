@@ -12,11 +12,18 @@ class StringContainerType(enum.IntEnum):
 
 
 class StringContainer:
-    """
-    Parser for a Bethesda .strings, .dlstrings, and ilstring files.
-    """
-
     def __init__(self, file: BinaryIO, type_: StringContainerType):
+        """
+        Parser for a Bethesda .strings, .dlstrings, and ilstring files.
+
+        The type of string container is typically determined by the file
+        extension and must be passed into the parser. The structure of the
+        header is the same for all three types, but the strings themselves
+        are encoded differently.
+
+        :param file: The file to parse.
+        :param type_: The type of string container.
+        """
         self.file = file
         self.io = BinaryReader(file)
         self.type_ = type_
@@ -43,6 +50,11 @@ class StringContainer:
 
     @property
     def strings(self):
+        """
+        Returns a dictionary of string IDs to strings.
+
+        :return:
+        """
         if self._strings:
             return self._strings
 
@@ -52,13 +64,18 @@ class StringContainer:
             self.io.seek(self.header["loc"].end + offset)
             match self.type_:
                 case StringContainerType.Strings:
-                    strings[string_id] = self.io.cstring()
+                    strings[string_id] = self.io.cstring(None)
+                    try:
+                        strings[string_id] = strings[string_id].decode("utf-8")
+                    except UnicodeDecodeError:
+                        strings[string_id] = strings[string_id].decode("cp1252")
                 case StringContainerType.DLStrings | StringContainerType.ILStrings:
                     size = self.io.uint32()
-                    # TODO: This is absolutely not correct. We need to handle
-                    #       encoding with Windows-1252 and their wacky custom
-                    #       encoding for Polish & Czech.
-                    strings[string_id] = self.io.read(size).decode("utf-8")
+                    strings[string_id] = self.io.read(size)
+                    try:
+                        strings[string_id] = strings[string_id].decode("utf-8")
+                    except UnicodeDecodeError:
+                        strings[string_id] = strings[string_id].decode("cp1252")
                 case _:
                     raise ValueError(
                         f"Unknown string container type: {self.type_}"

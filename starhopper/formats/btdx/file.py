@@ -1,6 +1,10 @@
+import contextlib
 from dataclasses import dataclass
-from typing import BinaryIO
+from io import BytesIO
+from pathlib import Path
+from typing import BinaryIO, Iterator
 
+from starhopper.formats.archive import ArchiveContainer, AbstractFile
 from starhopper.formats.common import Location
 from starhopper.io import BinaryReader
 
@@ -17,26 +21,103 @@ class GeneralFile:
     unknown_1: int
     path: bytes
     loc: Location
-    container: "BTDXContainer"
+    reader: BinaryReader | None = None
 
-    def view_content(self) -> bytes:
-        if self.packed_size == 0:
-            self.container.io.seek(self.offset)
-            return self.container.io.read(self.unpacked_size)
+
+class BA2Container(ArchiveContainer):
+    """
+    Parser for Bethesda .ba2 files.
+
+    .. note::
+
+        Currently, this only supports BTDX-versioned .ba2 files, such as those
+        used in Starfield.
+    """
+
+    def __init__(self, file: BinaryIO | None = None):
+        self._files: list[AbstractFile] = []
+
+        if file is not None:
+            self.read_from_file(file)
+
+    def read_from_file(self, file: BinaryIO):
+        """
+        Reads a .ba2 file from a file-like object.
+
+        :param file: Any file-like object supporting read().
+        """
+        io = BinaryReader(file)
+
+        header = self.parse_header(io)
+        name_table = self.parse_name_table(io, header)
+        for file in self.parse_file_index(io, header, name_table):
+            self._files.append(
+                AbstractFile(
+                    path=file.path.decode("ascii"),
+                    container=self,
+                    size=file.unpacked_size,
+                    meta={
+                        "_original": file,
+                    },
+                )
+            )
+
+    def files(self) -> Iterator[AbstractFile]:
+        yield from self._files
+
+    @contextlib.contextmanager
+    def open(self, file: AbstractFile):
+        """
+        Opens a file in the archive.
+
+        :param file: The file to open.
+        :return: A file-like object.
+        """
+        # If there's no original metadata, then this file was added after
+        # the archive was loaded and hasn't actually been written anywhere.
+        original: GeneralFile | None = file.meta.get("_original")
+        if original is None:
+            with BytesIO(file.meta["_content"]) as io:
+                yield io
         else:
-            return bytes()
+            reader = original.reader
+            reader.seek(original.offset)
+            end = original.offset + original.unpacked_size
+            with BytesIO(reader.read(end)) as io:
+                yield io
 
+    def extract_into(
+        self, file: AbstractFile, directory: Path, *, overwrite: bool = False
+    ):
+        if not directory.is_dir():
+            raise ValueError(f"{directory} is not a directory")
 
-class BTDXContainer:
-    def __init__(self, file: BinaryIO):
-        self.file = file
-        self.io = BinaryReader(file)
-        self.header = self.parse_header(self.io)
-        self.name_table = self.parse_name_table(self.io)
-        self._files = []
+        final_path = directory / Path(file.path)
+        if final_path.exists() and not overwrite:
+            raise FileExistsError(f"{final_path} already exists")
+
+        final_path.parent.mkdir(parents=True, exist_ok=True)
+
+        original: GeneralFile | None = file.meta.get("_original")
+        if original is None:
+            with open(final_path, "wb") as f:
+                f.write(file.meta["_content"])
+        else:
+            reader = original.reader
+            reader.seek(original.offset)
+            end = original.offset + original.unpacked_size
+            with open(final_path, "wb") as f:
+                for chunk in range(original.offset, end, 4096):
+                    chunk = reader.read(4096)
+                    if not chunk:
+                        break
+                    f.write(chunk)
 
     @staticmethod
     def parse_header(reader: BinaryReader):
+        """
+        Parses the header of a .ba2 file.
+        """
         with reader as header:
             header.bytes("file_id", 4).ensure("file_id", b"BTDX").uint32(
                 "version"
@@ -61,26 +142,23 @@ class BTDXContainer:
 
             return header.data
 
-    def parse_name_table(self, reader: BinaryReader):
-        reader.seek(self.header["names_offset"])
+    @staticmethod
+    def parse_name_table(reader: BinaryReader, header: dict):
+        reader.seek(header["names_offset"])
         result = [
-            reader.read(reader.uint16())
-            for _ in range(self.header["file_count"])
+            reader.read(reader.uint16()) for _ in range(header["file_count"])
         ]
-        reader.seek(self.header["loc"].end)
+        reader.seek(header["loc"].end)
         return result
 
-    @property
-    def files(self) -> list[GeneralFile]:
-        if self._files:
-            return self._files
-
-        self._files = result = []
-
-        if self.header["type"] == "GNRL":
-            for index in range(self.header["file_count"]):
-                with self.io as file:
-                    result.append(
+    @staticmethod
+    def parse_file_index(
+        reader: BinaryReader, header: dict, name_table: list[bytes]
+    ) -> list[GeneralFile]:
+        if header["type"] == "GNRL":
+            for index in range(header["file_count"]):
+                with reader as file:
+                    yield (
                         GeneralFile(
                             **file.uint32("hash_")
                             .string("ext", 4)
@@ -100,9 +178,7 @@ class BTDXContainer:
                                 ),
                             )
                             .data,
-                            path=self.name_table[index],
-                            container=self
+                            reader=reader,
+                            path=name_table[index],
                         )
                     )
-
-        return result

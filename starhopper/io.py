@@ -56,7 +56,7 @@ class BinaryReader:
     def double(self) -> float:
         return unpack("<d", self.read(8))[0]
 
-    def cstring(self, encoding: str = "utf-8") -> str:
+    def cstring(self, encoding: str | None = "utf-8") -> str | bytes:
         """
         Read bytes until a null byte is encountered, and decode them as the
         given encoding.
@@ -69,7 +69,10 @@ class BinaryReader:
             if c == 0:
                 break
             b.append(c)
-        return bytes(b).decode(encoding)
+        r = bytes(b)
+        if encoding:
+            return r.decode(encoding)
+        return r
 
     def __enter__(self) -> "Capture":
         return Capture(self)

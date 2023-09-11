@@ -10,7 +10,7 @@ from starhopper.formats.esm.records.edid import EDID
 class GMST(BaseRecord):
     @staticmethod
     def label():
-        return b"Game Setting"
+        return "Game Setting"
 
     @staticmethod
     def structure(record: Record):

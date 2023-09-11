@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 
 from starhopper.formats.esm.file import ESMContainer
 from starhopper.gui.common import tr
-from starhopper.gui.navigation import Navigation, ESMFileNode, BTDXFileNode
+from starhopper.gui.navigation import Navigation, ESMFileNode, ArchiveFileNode
 from starhopper.gui.settings import HasSettings
 
 
@@ -151,7 +151,7 @@ class MainWindow(HasSettings, QMainWindow):
                 case ".esm":
                     self.navigation.tree.addTopLevelItem(ESMFileNode(fname))
                 case ".ba2":
-                    self.navigation.tree.addTopLevelItem(BTDXFileNode(fname))
+                    self.navigation.tree.addTopLevelItem(ArchiveFileNode(fname))
                 case _:
                     QMessageBox.warning(
                         None,  # noqa

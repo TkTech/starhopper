@@ -2,8 +2,8 @@ from PySide6.QtCore import QSettings
 
 
 class HasSettings:
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.settings = QSettings()
         self.settings.beginGroup(self.settings_group_name())
         try:

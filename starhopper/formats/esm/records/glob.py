@@ -9,7 +9,7 @@ from starhopper.formats.esm.records.fltv import FLTV
 class GLOB(BaseRecord):
     @staticmethod
     def label():
-        return b"Global"
+        return "Global"
 
     @staticmethod
     def structure(record: Record):
