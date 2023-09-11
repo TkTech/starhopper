@@ -96,12 +96,8 @@ class RecordLoaderThread(QThread):
         for field in self.record.fields():
             field_item = FieldChild(self.record, field)
             field_item.setText(0, field.type.decode("ascii"))
-            field_item.addChildren(
-                [
-                    QTreeWidgetItem(["Size", str(field.size)]),
-                    QTreeWidgetItem(["Data", repr(field.data)]),
-                ]
-            )
+            field_item.setText(1, f"{field.size} bytes")
+            field_item.setForeground(1, ColorGray)
 
             self.viewer.details.addTopLevelItem(field_item)
 
@@ -137,7 +133,6 @@ class RecordViewer(Viewer):
         header.setStretchLastSection(False)
         header.setSectionResizeMode(1, QHeaderView.Stretch)
 
-        self.details.itemDoubleClicked.connect(self.on_item_double_clicked)
         self.details.currentItemChanged.connect(self.on_item_changed)
 
         self.loader = RecordLoaderThread(self, record)
@@ -151,18 +146,6 @@ class RecordViewer(Viewer):
     def on_progress_complete(self):
         self.details.expandAll()
         super().on_progress_complete()
-
-    def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
-        if not isinstance(item, FieldChild):
-            return
-
-        self.add_panel(
-            "child",
-            BinaryViewer(
-                item.field.data,
-                working_area=self.working_area,
-            ),
-        )
 
     def on_item_changed(
         self, current: QTreeWidgetItem, previous: QTreeWidgetItem

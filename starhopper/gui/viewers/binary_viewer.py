@@ -102,11 +102,6 @@ class BinaryViewer(Viewer):
 
         # If the data is small enough, it's _probably_ a simple type, so lets
         # just try showing it as _everything_.
-        if len(self.data) < 64:
-            self.type_guesser = TypeGuesser(data)
-            self.layout.insertWidget(0, self.type_guesser)
-            self.setMinimumWidth(0)
-
-        # Otherwise, we'll just show it as a hexdump.
-        else:
-            pass
+        self.type_guesser = TypeGuesser(data)
+        self.layout.insertWidget(0, self.type_guesser)
+        self.setMinimumWidth(0)
