@@ -1,8 +1,12 @@
 import contextlib
+import zlib
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO, Iterator
+
+import lz4.frame
+import lz4.block
 
 from starhopper.formats.archive import ArchiveContainer, AbstractFile
 from starhopper.formats.common import Location
@@ -51,6 +55,9 @@ class BA2Container(ArchiveContainer):
         header = self.parse_header(io)
         name_table = self.parse_name_table(io, header)
         for file in self.parse_file_index(io, header, name_table):
+            if file.packed_size > 0:
+                print(file)
+
             self._files.append(
                 AbstractFile(
                     path=file.path.decode("ascii"),
@@ -75,16 +82,8 @@ class BA2Container(ArchiveContainer):
         """
         # If there's no original metadata, then this file was added after
         # the archive was loaded and hasn't actually been written anywhere.
-        original: GeneralFile | None = file.meta.get("_original")
-        if original is None:
-            with BytesIO(file.meta["_content"]) as io:
-                yield io
-        else:
-            reader = original.reader
-            reader.seek(original.offset)
-            end = original.offset + original.unpacked_size
-            with BytesIO(reader.read(end)) as io:
-                yield io
+        with BytesIO() as destination:
+            self._write_to_io(file, destination)
 
     def extract_into(
         self, file: AbstractFile, directory: Path, *, overwrite: bool = False
@@ -97,21 +96,49 @@ class BA2Container(ArchiveContainer):
             raise FileExistsError(f"{final_path} already exists")
 
         final_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(final_path, "wb") as destination:
+            self._write_to_io(file, destination)
 
+    @staticmethod
+    def _write_to_io(file: AbstractFile, destination: BinaryIO):
         original: GeneralFile | None = file.meta.get("_original")
         if original is None:
-            with open(final_path, "wb") as f:
-                f.write(file.meta["_content"])
+            destination.write(file.meta["_content"])
         else:
             reader = original.reader
             reader.seek(original.offset)
-            end = original.offset + original.unpacked_size
-            with open(final_path, "wb") as f:
+            if original.packed_size > 0:
+                # This file is compressed.
+                # TODO: We should see if these support chunked decoding to
+                #       minimize memory usage.
+                zlib_check = reader.read(2)
+                reader.seek(original.offset)
+
+                if zlib_check == b"\x78\xDA":
+                    # Zlib-compressed.
+                    unpacked = zlib.decompress(
+                        reader.read(original.packed_size),
+                        bufsize=original.unpacked_size,
+                    )
+                else:
+                    unpacked = lz4.frame.decompress(
+                        reader.read(original.packed_size)
+                    )
+
+                if len(unpacked) != original.unpacked_size:
+                    raise ValueError(
+                        f"Unpacked size mismatch: expected "
+                        f"{original.unpacked_size}, got {len(unpacked)}"
+                    )
+
+                destination.write(unpacked)
+            else:
+                end = original.offset + original.unpacked_size
                 for chunk in range(original.offset, end, 4096):
                     chunk = reader.read(4096)
                     if not chunk:
                         break
-                    f.write(chunk)
+                    destination.write(chunk)
 
     @staticmethod
     def parse_header(reader: BinaryReader):
