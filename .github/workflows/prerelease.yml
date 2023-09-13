@@ -44,6 +44,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
 
+      - name: Install dependencies
+        run: |
+          poetry install
+
       - name: Build nuitka binaries
         run: |
           poetry run nuitka3 --onefile --disable-console -output-dir=builds -o=${{ matrix.output }} --enable-plugins=pyside6 starhopper/gui/app.py
