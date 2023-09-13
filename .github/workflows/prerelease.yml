@@ -83,6 +83,7 @@ jobs:
           --output-dir=builds
           -o starhopper.exe
           --enable-plugins=pyside6
+          --assume-yes-for-downloads
           starhopper/gui/app.py
 
       - name: Upload binaries

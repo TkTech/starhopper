@@ -1,6 +1,13 @@
+import csv
 from pathlib import Path
 
-from PySide6.QtWidgets import QLayout, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import (
+    QLayout,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QFileDialog,
+    QPushButton,
+)
 
 from starhopper.formats.archive import AbstractFile
 from starhopper.formats.strings import StringContainer, StringContainerType
@@ -48,4 +55,26 @@ class StringViewer(Viewer):
                 item.setText(1, string)
                 self.details.addTopLevelItem(item)
 
+        self.export_button = QPushButton(
+            tr("StringViewer", "E&xport as CSV", None)
+        )
+        self.export_button.clicked.connect(self.on_export_button_clicked)
+
         self.layout.insertWidget(0, self.details)
+        self.layout.insertWidget(1, self.export_button)
+
+    def on_export_button_clicked(self):
+        fname, _ = QFileDialog.getSaveFileName(
+            self,
+            tr("ModelViewer", "Export As", None),
+            filter=tr("ModelViewer", "CSV (*.csv)", None),
+        )
+
+        if not fname:
+            return
+
+        with open(fname, "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(("ID", "String"))
+            for string_id, string in self.strings.strings.items():
+                writer.writerow((str(string_id), string))
