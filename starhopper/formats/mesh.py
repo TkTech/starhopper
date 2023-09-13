@@ -1,10 +1,32 @@
+import dataclasses
 from typing import BinaryIO
 
 from starhopper.formats.common import Location
 from starhopper.io import BinaryReader
 
 
-def parse_mesh(file: BinaryIO):
+@dataclasses.dataclass
+class Mesh:
+    version: int
+    triangle_count: int
+    triangle_data: Location
+    coordinate_scale: float
+    weights_per_vertex: int
+    vertex_count: int
+    vertex_data: Location
+    uv_count: int
+    uv_data: Location
+    unknown_count: int
+    unknown_data: Location
+    color_count: int
+    color_data: Location
+    normal_count: int
+    normal_data: Location
+    tangents_count: int
+    tangents_data: Location
+
+
+def parse_mesh(file: BinaryIO) -> Mesh:
     """
     Parses a mesh file.
 
@@ -15,8 +37,8 @@ def parse_mesh(file: BinaryIO):
     """
     reader = BinaryReader(file)
     with reader as header:
-        return (
-            header.uint32("version")
+        return Mesh(
+            **header.uint32("version")
             .ensure("version", 1)
             .uint32("triangle_count")
             .set(
@@ -101,26 +123,26 @@ def mesh_to_obj(file: BinaryIO, destination: BinaryIO):
     destination.write(b"\n")
 
     # List of geometric vertices, with (x, y, z [,w]) coordinates, w is optional
-    reader.seek(header["vertex_data"].start)
-    for i in range(header["vertex_count"]):
-        x = reader.int16() * header["coordinate_scale"] / 32767
-        y = reader.int16() * header["coordinate_scale"] / 32767
-        z = reader.int16() * header["coordinate_scale"] / 32767
+    reader.seek(header.vertex_data.start)
+    for i in range(header.vertex_count):
+        x = reader.int16() * header.coordinate_scale / 32767
+        y = reader.int16() * header.coordinate_scale / 32767
+        z = reader.int16() * header.coordinate_scale / 32767
 
         destination.write(f"v {x:.4f} {y:.4f} {z:.4f}\n".encode("ascii"))
 
     # List of texture coordinates, in (u, v [,w]) coordinates, these will vary
     # between 0 and 1
-    reader.seek(header["uv_data"].start)
-    for i in range(header["uv_count"]):
+    reader.seek(header.uv_data.start)
+    for i in range(header.uv_count):
         u = reader.half()
         v = reader.half()
 
         destination.write(f"vt {u} {v}\n".encode("ascii"))
 
     # List of vertex normals in (x,y,z) form
-    reader.seek(header["triangle_data"].start)
-    for i in range(header["triangle_count"] // 3):
+    reader.seek(header.triangle_data.start)
+    for i in range(header.triangle_count // 3):
         # I don't honestly know _why_ we always add +1 (maybe to ensure the
         # value is never less than 0?) but it's what all the blender examples
         # do, so c'est la vie.
