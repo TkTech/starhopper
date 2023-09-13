@@ -88,22 +88,34 @@ jobs:
 
       - name: Upload binaries
         uses: actions/upload-artifact@v2
-        if : matrix.os == 'macos-latest'
         with:
           name: starhopper
-          path: builds/starhopper.app
+          path: |
+            builds/starhopper.app
+            builds/starhopper.bin
+            builds/starhopper.exe
+            
 
-      - name: Upload binaries
-        uses: actions/upload-artifact@v2
-        if : matrix.os == 'ubuntu-latest'
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
         with:
           name: starhopper
-          path: builds/starhopper.bin
 
-      - name: Upload binaries
-        uses: actions/upload-artifact@v2
-        if : matrix.os == 'windows-latest'
+      - name: Creating prerelease
+        uses: softprops/action-gh-release@v1
         with:
-          name: starhopper
-          path: builds/starhopper.exe
-
+          files: |
+            builds/starhopper.app
+            builds/starhopper.bin
+            builds/starhopper.exe
+          prerelease: true
+          body: |
+            This is a prerelease of StarHopper.
+            It is not intended for production use.
