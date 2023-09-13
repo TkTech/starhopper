@@ -21,8 +21,10 @@ jobs:
               --macos-create-app-bundle
           - os: ubuntu-latest
             output: starhopper.bin
+            extras:
           - os: windows-latest
             output: starhopper.exe
+            extras:
 
     runs-on: ${{ matrix.os }}
 
