@@ -118,9 +118,9 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.release_tag }}
           files: |
-            builds/starhopper.app
-            builds/starhopper.bin
-            builds/starhopper.exe
+            starhopper/builds/starhopper.app
+            starhopper/builds/starhopper.bin
+            starhopper/builds/starhopper.exe
           prerelease: true
           body: |
             This is a prerelease of StarHopper.
