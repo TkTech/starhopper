@@ -17,6 +17,8 @@ jobs:
         include:
           - os: macos-latest
             output: starhopper.bin
+            extras: >-
+              --macos-create-app-bundle
           - os: ubuntu-latest
             output: starhopper.bin
           - os: windows-latest
@@ -50,7 +52,13 @@ jobs:
 
       - name: Build nuitka binaries
         run: |
-          poetry run nuitka3 --onefile --disable-console -output-dir=builds -o=${{ matrix.output }} --enable-plugins=pyside6 starhopper/gui/app.py
+          poetry run nuitka3 \
+          --onefile \
+          --disable-console \
+          --output-dir=builds \
+          -o=${{ matrix.output }} \
+          --enable-plugins=pyside6 \
+          ${{ extras }} starhopper/gui/app.py
 
       - name: Upload binaries
         uses: actions/upload-artifact@v2
