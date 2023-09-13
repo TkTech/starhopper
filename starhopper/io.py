@@ -1,7 +1,5 @@
-from struct import unpack
+from struct import unpack, pack
 from typing import BinaryIO, Callable
-
-from wheel.cli.pack import pack
 
 
 class BinaryReader:
