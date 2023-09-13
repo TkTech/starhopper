@@ -92,7 +92,7 @@ jobs:
           name: starhopper
           path: |
             builds/starhopper.bin
-            builds/starthopper.osx.bin
+            builds/starhopper.osx.bin
             builds/starhopper.exe
             
 
