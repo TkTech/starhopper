@@ -55,9 +55,6 @@ class BA2Container(ArchiveContainer):
         header = self.parse_header(io)
         name_table = self.parse_name_table(io, header)
         for file in self.parse_file_index(io, header, name_table):
-            if file.packed_size > 0:
-                print(file)
-
             self._files.append(
                 AbstractFile(
                     path=file.path.decode("ascii"),
@@ -84,6 +81,8 @@ class BA2Container(ArchiveContainer):
         # the archive was loaded and hasn't actually been written anywhere.
         with BytesIO() as destination:
             self._write_to_io(file, destination)
+            destination.seek(0)
+            yield destination
 
     def extract_into(
         self, file: AbstractFile, directory: Path, *, overwrite: bool = False
@@ -162,9 +161,7 @@ class BA2Container(ArchiveContainer):
 
             header.set(
                 "loc",
-                Location(
-                    header.start_pos, header.pos, header.pos - header.start_pos
-                ),
+                Location(header.start_pos, header.pos),
             )
 
             return header.data
@@ -201,7 +198,6 @@ class BA2Container(ArchiveContainer):
                                 Location(
                                     file.start_pos,
                                     file.pos,
-                                    file.pos - file.start_pos,
                                 ),
                             )
                             .data,

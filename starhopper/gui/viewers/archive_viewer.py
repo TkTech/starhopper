@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from starhopper.formats.archive import ArchiveContainer, AbstractFile
 from starhopper.gui.common import tr, monospace
 from starhopper.gui.settings import HasSettings
+from starhopper.gui.viewers.model_viewer import ModelViewer
 from starhopper.gui.viewers.string_viewer import StringViewer
 from starhopper.gui.viewers.viewer import Viewer
 
@@ -38,6 +39,8 @@ class ArchiveViewer(HasSettings, Viewer):
 
         self.browser = QTreeWidget()
         self.browser.setColumnCount(2)
+        self.browser.setUniformRowHeights(True)
+        self.browser.setAlternatingRowColors(True)
         header = self.browser.header()
         header.setStretchLastSection(False)
         header.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -72,6 +75,10 @@ class ArchiveViewer(HasSettings, Viewer):
                 self.add_panel(
                     "child", StringViewer(item.file, self.working_area)
                 )
+            case ".mesh":
+                self.add_panel(
+                    "child", ModelViewer(item.file, self.working_area)
+                )
 
     def on_export_button_clicked(self):
         items_to_extract = [
@@ -95,7 +102,7 @@ class ArchiveViewer(HasSettings, Viewer):
 
         # Should probably be moved into a thread.
         for item in items_to_extract:
-            item.file.extract_into(Path(directory), overwrite=False)
+            item.file.extract_into(Path(directory), overwrite=True)
 
     def settings_group_name(self) -> str:
         return "archive_viewer"

@@ -170,7 +170,6 @@ class ESMContainer:
                     Location(
                         header.start_pos,
                         header.start_pos + header["size"] + 24,
-                        header["size"] + 24,
                     ),
                 )
                 .data
@@ -192,7 +191,6 @@ class ESMContainer:
                     Location(
                         group.start_pos,
                         group.start_pos + group["size"],
-                        group["size"],
                     ),
                 )
                 .data,
@@ -224,7 +222,6 @@ class ESMContainer:
                     Location(
                         record.start_pos,
                         record.start_pos + record["size"] + 24,
-                        record["size"] + 24,
                     ),
                 )
                 .data,

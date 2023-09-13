@@ -56,6 +56,9 @@ class BinaryReader:
     def double(self) -> float:
         return unpack("<d", self.read(8))[0]
 
+    def half(self) -> float:
+        return unpack("<e", self.read(2))[0]
+
     def cstring(self, encoding: str | None = "utf-8") -> str | bytes:
         """
         Read bytes until a null byte is encountered, and decode them as the

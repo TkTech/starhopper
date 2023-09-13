@@ -42,9 +42,7 @@ class StringContainer:
             )
             header.set(
                 "loc",
-                Location(
-                    header.start_pos, header.pos, header.pos - header.start_pos
-                ),
+                Location(header.start_pos, header.pos),
             )
             return header.data
 

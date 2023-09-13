@@ -9,4 +9,7 @@ class Location:
 
     start: int
     end: int
-    size: int
+
+    @property
+    def size(self):
+        return self.end - self.start

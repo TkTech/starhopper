@@ -22,6 +22,10 @@ rich = "^13.5.2"
 [tool.poetry.group.gui.dependencies]
 pyside6 = "^6.5.2"
 
+
+[tool.poetry.group.release.dependencies]
+nuitka = "^1.8.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

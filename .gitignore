@@ -3,3 +3,6 @@
 poetry.lock
 *.idea
 venv
+app.build
+app.bin
+*.obj
