@@ -53,17 +53,57 @@ jobs:
           poetry install
 
       - name: Build nuitka binaries
+        if: matrix.os == 'macos-latest'
         run: |
           poetry run nuitka3 \
           --onefile \
           --disable-console \
           --output-dir=builds \
-          -o=${{ matrix.output }} \
+          -o=starhopper.app \
+          --macos-create-app-bundle
           --enable-plugins=pyside6 \
-          ${{ extras }} starhopper/gui/app.py
+          starhopper/gui/app.py
+
+      - name: Build nuitka binaries
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          poetry run nuitka3 \
+          --onefile \
+          --disable-console \
+          --output-dir=builds \
+          -o=starhopper.bin \
+          --enable-plugins=pyside6 \
+          starhopper/gui/app.py
+
+      - name: Build nuitka binaries
+        if: matrix.os == 'windows-latest'
+        run: |
+          poetry run nuitka3 \
+          --onefile \
+          --disable-console \
+          --output-dir=builds \
+          -o=starhopper.exe \
+          --enable-plugins=pyside6 \
+          starhopper/gui/app.py
 
       - name: Upload binaries
         uses: actions/upload-artifact@v2
+        if : matrix.os == 'macos-latest'
         with:
           name: starhopper
-          path: builds/${{ matrix.output }}
+          path: builds/starhopper.app
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v2
+        if : matrix.os == 'ubuntu-latest'
+        with:
+          name: starhopper
+          path: builds/starhopper.bin
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v2
+        if : matrix.os == 'windows-latest'
+        with:
+          name: starhopper
+          path: builds/starhopper.exe
+
