@@ -58,7 +58,7 @@ jobs:
           --onefile
           --disable-console
           --output-dir=builds
-          -o starhopper.app 
+          -o starhopper.bin 
           --macos-create-app-bundle
           --enable-plugins=pyside6
           starhopper/gui/app.py
@@ -91,7 +91,6 @@ jobs:
         with:
           name: starhopper
           path: |
-            builds/starhopper.app
             builds/starhopper.bin
             builds/starhopper.exe
             
@@ -120,7 +119,6 @@ jobs:
           tag_name: ${{ steps.tag.outputs.release_tag }}
           files: |
             builds/*
-            builds/**/*
           prerelease: true
           body: |
             This is a prerelease of StarHopper.

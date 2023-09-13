@@ -10,6 +10,9 @@ from PySide6.QtWidgets import (
     QLayout,
 )
 
+from starhopper.gui.common import ColorPurple
+from starhopper.gui.widgets.spinner import QtWaitingSpinner
+
 
 class Viewer(QWidget):
     """
@@ -30,10 +33,14 @@ class Viewer(QWidget):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        self.progress = QProgressBar()
-        self.progress.setMaximumHeight(12)
-        self.progress.hide()
-        self.layout.addWidget(self.progress)
+        self.spinner = QtWaitingSpinner(self)
+        self.spinner.setColor(ColorPurple)
+        self.spinner.hide()
+
+        p = QtGui.QPalette(ColorPurple)
+        p.setColor(QtGui.QPalette.ColorRole.Highlight, ColorPurple)
+
+        self.layout.addWidget(self.spinner)
 
         self.setSizePolicy(
             QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -41,15 +48,12 @@ class Viewer(QWidget):
         self.setMinimumWidth(600)
         self.setLayout(self.layout)
 
-    def on_progress_update(self, value):
-        self.progress.setValue(value)
+    def on_loading_start(self):
+        self.spinner.start()
+        self.spinner.show()
 
-    def on_progress_set_maximum(self, value):
-        self.progress.show()
-        self.progress.setMaximum(value)
-
-    def on_progress_complete(self):
-        self.progress.hide()
+    def on_loading_complete(self):
+        self.spinner.close()
 
     def add_panel(self, key: Any, panel: QWidget):
         self.remove_panel(key)

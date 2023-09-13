@@ -2,7 +2,7 @@ import dataclasses
 from io import BytesIO
 
 from PySide6 import QtGui, QtCore
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import Signal, QRunnable, QThreadPool, QObject
 from PySide6.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidget,
@@ -34,22 +34,24 @@ class GroupChild(QTreeWidgetItem):
         self.group = group
 
 
-class GroupLoaderThread(QThread):
+class GroupLoaderSignals(QObject):
+    progressStart = Signal(int)
+    progressDone = Signal()
+
+
+class GroupLoaderThread(QRunnable):
     """
     Loads a group in the background and populates the details view.
     """
-
-    progressUpdate = Signal(int)
-    progressSetMaximum = Signal(int)
-    progressDone = Signal()
 
     def __init__(self, viewer: "GroupViewer", group: Group):
         super().__init__()
         self.viewer = viewer
         self.group = group
+        self.s = GroupLoaderSignals()
 
     def run(self):
-        self.progressSetMaximum.emit(self.group.loc.size)
+        self.s.progressStart.emit(self.group.loc.size)
 
         item = QTreeWidgetItem(self.viewer.details)
         item.setText(0, tr("GroupViewer", "Details", None))
@@ -67,8 +69,6 @@ class GroupLoaderThread(QThread):
         )
         item.setExpanded(True)
 
-        bytes_read = 0
-        last_updated_at = 0
         for child in self.group.children():
             if isinstance(child, Group):
                 item = GroupChild(group=child)
@@ -111,12 +111,7 @@ class GroupLoaderThread(QThread):
             self.viewer.details.addTopLevelItem(item)
             self.group.file.io.seek(child.loc.end)
 
-            bytes_read += child.loc.size
-            if bytes_read - last_updated_at > 1024:
-                last_updated_at = bytes_read
-                self.progressUpdate.emit(bytes_read)
-
-        self.progressDone.emit()
+        self.s.progressDone.emit()
 
 
 class GroupViewer(Viewer):
@@ -138,6 +133,7 @@ class GroupViewer(Viewer):
         )
 
         self.details = QTreeWidget(self)
+        self.details.hide()
         self.details.setUniformRowHeights(True)
         self.details.setColumnCount(3)
         self.details.setHeaderLabels(
@@ -149,19 +145,20 @@ class GroupViewer(Viewer):
         )
         self.details.itemDoubleClicked.connect(self.on_item_double_clicked)
 
-        self.loader = GroupLoaderThread(self, group)
-        self.loader.progressUpdate.connect(
-            self.on_progress_update, QtCore.Qt.QueuedConnection  # noqa
+        loader = GroupLoaderThread(self, group)
+        loader.s.progressStart.connect(
+            self.on_loading_start, QtCore.Qt.QueuedConnection  # noqa
         )
-        self.loader.progressSetMaximum.connect(
-            self.on_progress_set_maximum, QtCore.Qt.QueuedConnection  # noqa
+        loader.s.progressDone.connect(
+            self.on_loading_complete, QtCore.Qt.QueuedConnection  # noqa
         )
-        self.loader.progressDone.connect(
-            self.on_progress_complete, QtCore.Qt.QueuedConnection  # noqa
-        )
-        self.loader.start()
+        QThreadPool.globalInstance().start(loader)
 
         self.layout.insertWidget(0, self.details)
+
+    def on_loading_complete(self):
+        super().on_loading_complete()
+        self.details.show()
 
     def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
         if isinstance(item, GroupChild):

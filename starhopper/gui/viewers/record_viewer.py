@@ -1,6 +1,6 @@
 import dataclasses
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import Signal, QObject, QRunnable, QThreadPool
 from PySide6.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
@@ -22,18 +22,20 @@ class FieldChild(QTreeWidgetItem):
         self.field = field
 
 
-class RecordLoaderThread(QThread):
-    progressUpdate = Signal(int)
-    progressSetMaximum = Signal(int)
+class RecordLoaderSignals(QObject):
+    progressStart = Signal(int)
     progressDone = Signal()
 
+
+class RecordLoaderThread(QRunnable):
     def __init__(self, viewer: "RecordViewer", record: Record):
         super().__init__()
         self.record = record
         self.viewer = viewer
+        self.s = RecordLoaderSignals()
 
     def run(self):
-        self.progressSetMaximum.emit(self.record.loc.size)
+        self.s.progressStart.emit(self.record.loc.size)
 
         item = QTreeWidgetItem(self.viewer.details)
         item.setText(0, "Details")
@@ -87,12 +89,10 @@ class RecordLoaderThread(QThread):
                 self.viewer.details.addTopLevelItem(field_item)
 
             # TODO: Actually track progress
-            self.progressDone.emit()
+            self.s.progressDone.emit()
             return
 
         # Fallback for unknown types of records.
-        bytes_read = 0
-        last_updated_at = 0
         for field in self.record.fields():
             field_item = FieldChild(self.record, field)
             field_item.setText(0, field.type.decode("ascii"))
@@ -101,12 +101,7 @@ class RecordLoaderThread(QThread):
 
             self.viewer.details.addTopLevelItem(field_item)
 
-            bytes_read += field.size + 6
-            if bytes_read - last_updated_at > 1024:
-                last_updated_at = bytes_read
-                self.progressUpdate.emit(bytes_read)
-
-        self.progressDone.emit()
+        self.s.progressDone.emit()
 
 
 class RecordViewer(Viewer):
@@ -135,17 +130,16 @@ class RecordViewer(Viewer):
 
         self.details.currentItemChanged.connect(self.on_item_changed)
 
-        self.loader = RecordLoaderThread(self, record)
-        self.loader.progressSetMaximum.connect(self.on_progress_set_maximum)
-        self.loader.progressUpdate.connect(self.on_progress_update)
-        self.loader.progressDone.connect(self.on_progress_complete)
-        self.loader.start()
+        loader = RecordLoaderThread(self, record)
+        loader.s.progressStart.connect(self.on_loading_start)
+        loader.s.progressDone.connect(self.on_loading_complete)
+        QThreadPool.globalInstance().start(loader)
 
         self.layout.insertWidget(0, self.details)
 
-    def on_progress_complete(self):
+    def on_loading_complete(self):
         self.details.expandAll()
-        super().on_progress_complete()
+        super().on_loading_complete()
 
     def on_item_changed(
         self, current: QTreeWidgetItem, previous: QTreeWidgetItem
