@@ -5,3 +5,6 @@ poetry.lock
 venv
 builds/*
 *.obj
+app.build/*
+app.dist/*
+app.onefile-build/*
