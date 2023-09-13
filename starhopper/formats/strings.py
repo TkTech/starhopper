@@ -117,3 +117,7 @@ class StringContainer:
             writer.seek(offsets[string_id])
             writer.uint32(start)
             writer.seek(return_pos)
+
+        # Write the size of the string data.
+        writer.seek(4)
+        writer.uint32(writer.pos - 8)
