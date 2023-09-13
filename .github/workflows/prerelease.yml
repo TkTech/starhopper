@@ -58,7 +58,7 @@ jobs:
           --onefile
           --disable-console
           --output-dir=builds
-          -o starhopper.bin 
+          -o starhopper.osx.bin 
           --macos-create-app-bundle
           --enable-plugins=pyside6
           starhopper/gui/app.py
@@ -92,6 +92,7 @@ jobs:
           name: starhopper
           path: |
             builds/starhopper.bin
+            builds/starthopper.osx.bin
             builds/starhopper.exe
             
 
