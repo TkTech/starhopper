@@ -1,6 +1,8 @@
 from struct import unpack
 from typing import BinaryIO, Callable
 
+from wheel.cli.pack import pack
+
 
 class BinaryReader:
     def __init__(self, file: BinaryIO, *, offset: int = 0):
@@ -82,6 +84,71 @@ class BinaryReader:
 
     def __exit__(self, exc_type, exc_value, traceback):
         pass
+
+
+class BinaryWriter:
+    def __init__(self, file: BinaryIO, *, offset: int = 0):
+        self.file = file
+        self.offset = offset
+
+    def write(self, data: bytes):
+        self.offset += len(data)
+        self.file.write(data)
+
+    @property
+    def pos(self) -> int:
+        return self.offset
+
+    def seek(self, offset: int):
+        self.offset = offset
+        self.file.seek(offset, 0)
+
+    def skip(self, count: int):
+        self.offset += count
+        self.file.seek(count, 1)
+
+    def uint8(self, value: int):
+        self.write(value.to_bytes(1, "little", signed=False))
+
+    def uint16(self, value: int):
+        self.write(value.to_bytes(2, "little", signed=False))
+
+    def uint32(self, value: int):
+        self.write(value.to_bytes(4, "little", signed=False))
+
+    def uint64(self, value: int):
+        self.write(value.to_bytes(8, "little", signed=False))
+
+    def int8(self, value: int):
+        self.write(value.to_bytes(1, "little", signed=True))
+
+    def int16(self, value: int):
+        self.write(value.to_bytes(2, "little", signed=True))
+
+    def int32(self, value: int):
+        self.write(value.to_bytes(4, "little", signed=True))
+
+    def int64(self, value: int):
+        self.write(value.to_bytes(8, "little", signed=True))
+
+    def float_(self, value: float):
+        self.write(pack("<f", value))
+
+    def double(self, value: float):
+        self.write(pack("<d", value))
+
+    def half(self, value: float):
+        self.write(pack("<e", value))
+
+    def cstring(self, value: str, encoding: str = "utf-8"):
+        """
+        Write the given string as bytes, followed by a null byte.
+
+        :param value: The string to write.
+        :param encoding: The encoding to use.
+        """
+        self.write(value.encode(encoding))
+        self.write(b"\x00")
 
 
 class Capture:

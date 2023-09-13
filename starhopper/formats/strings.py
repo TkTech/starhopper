@@ -2,7 +2,7 @@ import enum
 from typing import BinaryIO
 
 from starhopper.formats.common import Location
-from starhopper.io import BinaryReader
+from starhopper.io import BinaryReader, BinaryWriter
 
 
 class StringContainerType(enum.IntEnum):
@@ -80,3 +80,40 @@ class StringContainer:
                     )
 
         return self._strings
+
+    def save(self, file: BinaryIO):
+        """
+        Saves the string container to a file.
+
+        :param file: Any file-like object supporting write() and seek().
+        """
+        writer = BinaryWriter(file)
+        writer.uint32(len(self.strings))
+        # This is the size of the string data, we'll have to come back to write
+        # this.
+        writer.uint32(0)
+
+        # Where to skip backwards to when writing offsets.
+        offsets: dict[int, int] = {}
+
+        for string_id in self.strings.values():
+            writer.uint32(string_id)
+            offsets[string_id] = writer.pos
+            writer.uint32(0)
+
+        # Write the string data.
+        for string_id, string in self.strings.items():
+            start = writer.pos
+            match self.type_:
+                case StringContainerType.Strings:
+                    writer.cstring(string)
+                case StringContainerType.DLStrings | StringContainerType.ILStrings:
+                    encoded = string.encode("utf-8")
+                    writer.uint32(len(encoded))
+                    writer.write(string)
+                    writer.write(b"\x00")
+
+            return_pos = writer.pos
+            writer.seek(offsets[string_id])
+            writer.uint32(start)
+            writer.seek(return_pos)
