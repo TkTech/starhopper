@@ -54,37 +54,37 @@ jobs:
 
       - name: Build nuitka binaries
         if: matrix.os == 'macos-latest'
-        run: |
-          poetry run nuitka3 \
-            --onefile \
-            --disable-console \
-            --output-dir=builds \
-            -o=starhopper.app \
-            --macos-create-app-bundle
-            --enable-plugins=pyside6 \
-            starhopper/gui/app.py
+        run: >
+          poetry run nuitka3
+          --onefile
+          --disable-console
+          --output-dir=builds
+          -o=starhopper.app 
+          --macos-create-app-bundle
+          --enable-plugins=pyside6
+          starhopper/gui/app.py
 
       - name: Build nuitka binaries
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          poetry run nuitka3 \
-            --onefile \
-            --disable-console \
-            --output-dir=builds \
-            -o=starhopper.bin \
-            --enable-plugins=pyside6 \
-            starhopper/gui/app.py
+        run: >
+          poetry run nuitka3
+          --onefile
+          --disable-console
+          --output-dir=builds
+          -o=starhopper.bin
+          --enable-plugins=pyside6
+          starhopper/gui/app.py
 
       - name: Build nuitka binaries
         if: matrix.os == 'windows-latest'
-        run: |
-          poetry run nuitka3 \
-            --onefile \
-            --disable-console \
-            --output-dir=builds \
-            -o=starhopper.exe \
-            --enable-plugins=pyside6 \
-            starhopper/gui/app.py
+        run: >
+          poetry run nuitka3
+          --onefile
+          --disable-console
+          --output-dir=builds
+          -o=starhopper.exe
+          --enable-plugins=pyside6
+          starhopper/gui/app.py
 
       - name: Upload binaries
         uses: actions/upload-artifact@v2

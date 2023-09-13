@@ -38,8 +38,9 @@ Bethesda games are welcome.
 
 Included parsers:
 
-| Format   | Version(s) | Note                                                    |
-|----------|------------|---------------------------------------------------------|
-| ESM      | TES5       | Raw viewer, only a few Records have detailed support.   |
-| .ba2     | v2, v3     | Uncompressed GNRL records only, DX10 not yet supported. |
-| .strings | All        | Supports .strings, .dlstrings, and .ilstrings.          |
+| Format   | Version(s) | Note                                                  |
+|----------|------------|-------------------------------------------------------|
+| ESM      | TES5       | Raw viewer, only a few Records have detailed support. |
+| .ba2     | v2, v3     | GNRL records only, DX10 not yet supported.            |
+| .strings | All        | Supports .strings, .dlstrings, and .ilstrings.        |
+| .mesh    | All(?)     | Supports enough to export .obj files.                 |
