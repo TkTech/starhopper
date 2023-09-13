@@ -53,35 +53,35 @@ jobs:
 
       - name: Build nuitka binaries
         if: matrix.os == 'macos-latest'
-        run: >
+        run: >-
           poetry run nuitka3
           --onefile
           --disable-console
           --output-dir=builds
-          -o=starhopper.app 
+          -o starhopper.app 
           --macos-create-app-bundle
           --enable-plugins=pyside6
           starhopper/gui/app.py
 
       - name: Build nuitka binaries
         if: matrix.os == 'ubuntu-latest'
-        run: >
+        run: >-
           poetry run nuitka3
           --onefile
           --disable-console
           --output-dir=builds
-          -o=starhopper.bin
+          -o starhopper.bin
           --enable-plugins=pyside6
           starhopper/gui/app.py
 
       - name: Build nuitka binaries
         if: matrix.os == 'windows-latest'
-        run: >
+        run: >-
           poetry run nuitka
           --onefile
           --disable-console
           --output-dir=builds
-          -o=starhopper.exe
+          -o starhopper.exe
           --enable-plugins=pyside6
           starhopper/gui/app.py
 
