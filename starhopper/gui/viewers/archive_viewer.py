@@ -75,10 +75,12 @@ class ArchiveViewer(HasSettings, Viewer):
                 self.add_panel(
                     "child", StringViewer(item.file, self.working_area)
                 )
-            case ".mesh":
-                self.add_panel(
-                    "child", ModelViewer(item.file, self.working_area)
-                )
+            # Mesh previewer is temporarily disabled due to crashes with
+            # compiled binaries when initializing the 3D view.
+            # case ".mesh":
+            #     self.add_panel(
+            #         "child", ModelViewer(item.file, self.working_area)
+            #     )
 
     def on_export_button_clicked(self):
         items_to_extract = [
