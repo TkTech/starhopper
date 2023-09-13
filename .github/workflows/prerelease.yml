@@ -87,7 +87,7 @@ jobs:
           starhopper/gui/app.py
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: starhopper
           path: |
@@ -104,7 +104,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: starhopper
 
@@ -118,9 +118,8 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.release_tag }}
           files: |
-            starhopper/starhopper.app
-            starhopper/starhopper.bin
-            starhopper/starhopper.exe
+            starhopper/*
+            starhopper/**/*
           prerelease: true
           body: |
             This is a prerelease of StarHopper.
