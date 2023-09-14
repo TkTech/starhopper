@@ -83,3 +83,6 @@ class Viewer(QWidget):
             panel.close()
 
         super().closeEvent(event)
+
+    def navigate(self, path: list[str]):
+        pass

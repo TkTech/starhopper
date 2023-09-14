@@ -5,8 +5,8 @@ from PySide6 import QtCore
 from PySide6.QtCore import (
     QTranslator,
     QCoreApplication,
-    QThread,
     Signal,
+    QThreadPool,
 )
 from PySide6.QtGui import QKeySequence, Qt
 from PySide6.QtWidgets import (
@@ -27,19 +27,22 @@ from PySide6.QtWidgets import (
     QPushButton,
 )
 
-from starhopper.formats.esm.file import ESMContainer
 from starhopper.gui.common import tr
 from starhopper.gui.navigation import Navigation, ESMFileNode, ArchiveFileNode
 from starhopper.gui.settings import HasSettings
+from starhopper.gui.viewers.search_viewer import SearchViewer, SearchIndexThread
 
 
 class SearchBox(QWidget):
+    onTyping = Signal(str)
+
     def __init__(self):
         super().__init__()
 
         self.query = QLineEdit()
         self.query.setMinimumWidth(300)
         self.query.setPlaceholderText(tr("Search", "Search...", None))
+        self.query.textChanged.connect(self.onTyping)
 
         self.progress = QProgressBar()
         self.progress.setTextVisible(True)
@@ -50,20 +53,8 @@ class SearchBox(QWidget):
         self.progress.setValue(50)
 
         self.layout = QVBoxLayout(self)
-        # self.layout.addWidget(self.query)
+        self.layout.addWidget(self.query)
         self.layout.setContentsMargins(0, 0, 0, 0)
-
-
-class SearchIndexThread(QThread):
-    def __init__(self, file: str):
-        super().__init__()
-        self.file = file
-
-    def run(self):
-        with open(self.file, "rb") as src:
-            esm = ESMContainer(src)
-            for group in esm.groups:
-                pass
 
 
 class Details(QWidget):
@@ -120,10 +111,11 @@ class MainWindow(HasSettings, QMainWindow):
         self.search_index_threads = []
         self.setWindowTitle("StarHopper")
 
+        self.search_box = SearchBox()
+
         self.menu = self.menuBar()
-        self.global_search = SearchBox()
         self.menu.setCornerWidget(
-            self.global_search, QtCore.Qt.TopRightCorner  # noqa
+            self.search_box, QtCore.Qt.TopRightCorner  # noqa
         )
         self.menu_file = self.menu.addMenu(tr("MainWindow", "File", None))
 
@@ -153,6 +145,8 @@ class MainWindow(HasSettings, QMainWindow):
         self.panel_container_layout.setSizeConstraint(QLayout.SetMinimumSize)
         self.panel_scroll_container.setWidget(self.panel_container)
 
+        self.search_box.onTyping.connect(self.on_search)
+
         self.navigation = Navigation(working_area=self.panel_container_layout)
         self.navigation.setMinimumWidth(300)
         self.navigation.setSizePolicy(
@@ -163,6 +157,11 @@ class MainWindow(HasSettings, QMainWindow):
         )
         self.navigation.hide()
 
+        self.search_view = SearchViewer(self.panel_container_layout)
+        self.search_view.hide()
+        self.search_view.onSearchSelected.connect(self.navigation.navigate)
+        self.search_view.onSearchSelected.connect(self.close_search)
+
         starter = StarterWidget()
         starter.openFile.connect(self.on_open_file)
         self.fileAdded.connect(starter.close)
@@ -171,7 +170,8 @@ class MainWindow(HasSettings, QMainWindow):
         splitter = QSplitter()
         splitter.addWidget(self.navigation)
         splitter.addWidget(self.panel_scroll_container)
-        splitter.setSizes([300, 800])
+        splitter.addWidget(self.search_view)
+        splitter.setSizes([300, 800, 800])
 
         self.setCentralWidget(splitter)
 
@@ -218,6 +218,23 @@ class MainWindow(HasSettings, QMainWindow):
                 self.navigation.on_item_double_clicked(item, 0)
 
             self.fileAdded.emit(fname)
+
+            loader = SearchIndexThread(fname)
+            QThreadPool.globalInstance().start(loader)
+
+    def close_search(self):
+        self.search_box.query.clear()
+        self.search_view.hide()
+        self.panel_scroll_container.show()
+
+    def on_search(self, query: str):
+        if not query:
+            self.close_search()
+            return
+
+        self.panel_scroll_container.hide()
+        self.search_view.show()
+        self.search_view.update_search_results(query)
 
     def on_added_new_panel(self, panel: QWidget):
         self.panel_scroll_container.ensureWidgetVisible(panel)

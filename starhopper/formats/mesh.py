@@ -150,4 +150,6 @@ def mesh_to_obj(file: BinaryIO, destination: BinaryIO):
         b = reader.uint16() + 1
         c = reader.uint16() + 1
 
-        destination.write(f"f {a:d} {b:d} {c:d}\n".encode("ascii"))
+        destination.write(
+            f"f {a:d}/{a:d} {b:d}/{b:d} {c:d}/{c:d}\n".encode("ascii")
+        )

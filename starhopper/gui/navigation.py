@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6 import QtGui, QtCore
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import (
     QWidget,
     QTreeWidget,
@@ -41,22 +41,45 @@ class Navigation(QWidget):
 
         self.viewer: QWidget | None = None
 
-    def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
-        if not isinstance(item, HandledChildNode):
-            return
-
-        if self.viewer is not None:
+    def set_viewer(self, viewer: Viewer):
+        if self.viewer is not None and viewer != self.viewer:
             self.viewer.close()
 
-        self.viewer = item.get_viewer(self.working_area)
-        if self.viewer is None:
-            return
-
+        self.viewer = viewer
         self.viewer.addedNewPanel.connect(
             self.addedNewPanel.emit, QtCore.Qt.QueuedConnection  # noqa
         )
         self.working_area.addWidget(self.viewer)
         self.addedNewPanel.emit(self.viewer)
+
+    def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
+        self.open_item(item)
+
+    def open_item(self, item: QTreeWidgetItem) -> Viewer | None:
+        if not isinstance(item, HandledChildNode):
+            return
+
+        viewer = item.get_viewer(self.working_area)
+        if viewer is None:
+            return
+
+        self.set_viewer(viewer)
+        return viewer
+
+    def navigate(self, path: list[str]):
+        top_level = Path(path.pop(0))
+
+        items = self.tree.findItems(
+            top_level.name, Qt.MatchExactly | Qt.MatchRecursive
+        )
+
+        for item in items:
+            if item.file == top_level:
+                self.tree.setCurrentItem(item)
+                viewer = self.open_item(item)
+                if viewer is not None:
+                    viewer.navigate(path)
+                break
 
 
 class HandledChildNode:

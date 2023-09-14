@@ -106,3 +106,16 @@ class ArchiveViewer(HasSettings, Viewer):
 
     def settings_group_name(self) -> str:
         return "archive_viewer"
+
+    def navigate(self, path: list[str]):
+        component = path.pop(0)
+
+        items = self.browser.findItems(
+            component, Qt.MatchExactly | Qt.MatchRecursive
+        )
+
+        for item in items:
+            if item.file.path == component:
+                self.browser.setCurrentItem(item)
+                self.on_item_double_clicked(item, 0)
+                break
