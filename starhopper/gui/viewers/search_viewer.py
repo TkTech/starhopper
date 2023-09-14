@@ -21,6 +21,7 @@ from starhopper.gui.common import (
     ColorGray,
     ColorOrange,
     ColorGreen,
+    monospace,
 )
 from starhopper.gui.search import SearchResult
 
@@ -42,6 +43,8 @@ class SearchResultNode(QTreeWidgetItem):
             case search.ItemType.EDID:
                 self.setForeground(1, ColorPurple)
             case search.ItemType.FORM_ID:
+                self.setText(1, f"0x{result.stored_text}")
+                self.setFont(1, monospace())
                 self.setForeground(1, ColorOrange)
             case search.ItemType.FILE:
                 self.setForeground(1, ColorGreen)
@@ -71,6 +74,7 @@ class SearchViewer(Viewer):
         self.tree.itemDoubleClicked.connect(self.on_item_double_clicked)
 
         header = self.tree.header()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         header.setStretchLastSection(False)
 
@@ -111,9 +115,8 @@ class SearchIndexThread(QRunnable):
             case ".esm":
                 with open(self.file, "rb") as handle:
                     item = ESMContainer(handle)
-                    for idx, top_level_group in enumerate(item.groups):
+                    for top_level_group in item.groups:
                         path = [top_level_group]
-                        indexes = [idx]
                         while path:
                             parent = path.pop()
                             for record in parent.children():
@@ -126,9 +129,9 @@ class SearchIndexThread(QRunnable):
                                     [
                                         str(self.file),
                                         top_level_group.label.decode("ascii"),
-                                        str(record.form_id),
+                                        f"{record.form_id:08X}",
                                     ],
-                                    str(record.form_id),
+                                    f"{record.form_id:08X}",
                                     search.ItemType.FORM_ID,
                                 )
 

@@ -2,7 +2,7 @@ import dataclasses
 from io import BytesIO
 
 from PySide6 import QtGui, QtCore
-from PySide6.QtCore import Signal, QRunnable, QThreadPool, QObject
+from PySide6.QtCore import Signal, QRunnable, QThreadPool, QObject, Qt
 from PySide6.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidget,
@@ -16,6 +16,7 @@ from starhopper.gui.common import (
     ColorPurple,
     monospace,
     ColorRed,
+    ColorOrange,
 )
 from starhopper.gui.viewers.record_viewer import RecordViewer
 from starhopper.gui.viewers.viewer import Viewer
@@ -81,10 +82,10 @@ class GroupLoaderThread(QRunnable):
 
             item = RecordChild(record=child)
             item.setText(0, child.type.decode("ascii"))
-            item.setText(1, f"{child.form_id:08x}")
+            item.setText(1, f"0x{child.form_id:08X}")
             item.setToolTip(1, tr("GroupViewer", "Form ID", None))
             item.setFont(1, monospace())
-            item.setForeground(1, QtGui.QBrush(ColorGray))
+            item.setForeground(1, ColorOrange)
 
             if child.flags & RecordFlag.Deleted:
                 item.setForeground(0, QtGui.QBrush(ColorRed))
@@ -161,12 +162,17 @@ class GroupViewer(Viewer):
         self.details.show()
 
     def on_item_double_clicked(self, item: QTreeWidgetItem, column: int):
+        self.open_item(item)
+
+    def open_item(self, item: QTreeWidgetItem) -> Viewer | None:
         if isinstance(item, GroupChild):
-            self.add_panel(
-                "child",
-                GroupViewer(item.group, self.working_area),
-            )
+            viewer = GroupViewer(item.group, self.working_area)
+            self.add_panel("child", viewer)
+            return viewer
         elif isinstance(item, RecordChild):
-            self.add_panel(
-                "child", RecordViewer(item.record, self.working_area)
-            )
+            viewer = RecordViewer(item.record, self.working_area)
+            self.add_panel("child", viewer)
+            return viewer
+
+    def navigate(self, path: list[str]):
+        pass

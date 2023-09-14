@@ -14,7 +14,7 @@ class ItemType(enum.IntEnum):
 @dataclasses.dataclass
 class SearchResult:
     file_path: str
-    navigation_path: list[str]
+    navigation_path: list[str | int | list[int, int]]
     stored_text: str
     item_type: ItemType
 
@@ -37,7 +37,8 @@ connection.executescript(
     );
     CREATE UNIQUE INDEX IF NOT EXISTS search_index_unique ON search_index (
         file_path,
-        navigation_path
+        navigation_path,
+        stored_text
     );
     CREATE INDEX IF NOT EXISTS search_index_search_text ON search_index (
         search_text
@@ -66,7 +67,7 @@ def add_to_index(
             item_type
         )
         VALUES (?, ?, ?, lower(?), ?)
-        ON CONFLICT (file_path, navigation_path) DO UPDATE SET
+        ON CONFLICT (file_path, navigation_path, stored_text) DO UPDATE SET
             search_text = excluded.search_text
         """,
         (
