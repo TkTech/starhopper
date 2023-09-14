@@ -138,7 +138,7 @@ def mesh_to_obj(file: BinaryIO, destination: BinaryIO):
         u = reader.half()
         v = reader.half()
 
-        destination.write(f"vt {u} {v}\n".encode("ascii"))
+        destination.write(f"vt {u} {1.0 - v}\n".encode("ascii"))
 
     # List of vertex normals in (x,y,z) form
     reader.seek(header.triangle_data.start)
