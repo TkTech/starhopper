@@ -129,7 +129,7 @@ def mesh_to_obj(file: BinaryIO, destination: BinaryIO):
         y = reader.int16() * header.coordinate_scale / 32767
         z = reader.int16() * header.coordinate_scale / 32767
 
-        destination.write(f"v {x:.4f} {y:.4f} {z:.4f}\n".encode("ascii"))
+        destination.write(f"v {x:.8f} {y:.8f} {z:.8f}\n".encode("ascii"))
 
     # List of texture coordinates, in (u, v [,w]) coordinates, these will vary
     # between 0 and 1
@@ -141,6 +141,22 @@ def mesh_to_obj(file: BinaryIO, destination: BinaryIO):
         destination.write(f"vt {u} {1.0 - v}\n".encode("ascii"))
 
     # List of vertex normals in (x,y,z) form
+    # uint32 * vCnt        Normals (Z axis of tangent space) in X10Y10Z10 format:
+    # b0  to b9  = (X + 1.0) * 511.5
+    # b10 to b19 = (Y + 1.0) * 511.5
+    # b20 to b29 = (Z + 1.0) * 511.5
+    # b30 to b31 = unknown, either 00 or 01
+    reader.seek(header.normal_data.start)
+    for i in range(header.normal_count):
+        # X10Y10Z10W2 format
+        normal = reader.uint32()
+        x = ((normal & 1023) / 511.5) - 1.0
+        y = (((normal >> 10) & 1023) / 511.5) - 1.0
+        z = (((normal >> 20) & 1023) / 511.5) - 1.0
+
+        destination.write(f"vn {x:.8f} {y:.8f} {z:.8f}\n".encode("ascii"))
+
+    # List of triangle indices (3 per face), each index repeated three times separated by slashes
     reader.seek(header.triangle_data.start)
     for i in range(header.triangle_count // 3):
         # I don't honestly know _why_ we always add +1 (maybe to ensure the
@@ -151,5 +167,6 @@ def mesh_to_obj(file: BinaryIO, destination: BinaryIO):
         c = reader.uint16() + 1
 
         destination.write(
-            f"f {a:d}/{a:d} {b:d}/{b:d} {c:d}/{c:d}\n".encode("ascii")
+            f"f {a:d}/{a:d}/{a:d} {b:d}/{b:d}/{b:d} {c:d}/{c:d}/{c:d}\n".encode("ascii")
         )
+
